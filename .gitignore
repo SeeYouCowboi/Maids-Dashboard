@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.eggs/
+dist/
+build/
+*.egg
+
+# Logs
+*.log
+server_out.log
+server_err.log
+server_output.log
+
+# Runtime state
+canon/.canon_state.json
+
+# Internal agent/tool state
+.agents/
+.claude/
+.sisyphus/
+
+# Temporary files
+nul
+session_ingest_temp.py
+
+# Test temp directories and databases
+tests/tmp*/
+*.db
+
+# Sisyphus evidence files (internal task tracker artifacts in frontend/)
+frontend/...*
+
+# Node
+node_modules/
+dist/
+.npm/
+
+# IDE
+*.code-workspace
+.vscode/
+
+# Environment
+.env
+*.env
+
+# OS
+Thumbs.db
+.DS_Store
