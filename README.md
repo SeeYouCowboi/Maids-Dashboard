@@ -1,0 +1,149 @@
+# Maids Dashboard
+
+Local control plane for the [OpenClaw](https://github.com/) multi-agent system. Provides a web UI for monitoring agent sessions, reviewing RP output, managing lorebooks and characters, and controlling cron schedules — all over a loopback-only connection.
+
+> For day-to-day operational details, see [RUNBOOK.md](./RUNBOOK.md).
+
+---
+
+## Stack
+
+**Backend** — Python 3.10+, FastAPI, uvicorn, SQLite
+**Frontend** — React 19, TypeScript, Tailwind CSS v4, Vite 6, Recharts, motion/react
+
+---
+
+## Requirements
+
+- Python 3.10+
+- Node.js 18+ (frontend development only)
+- OpenClaw gateway running on port 18789
+
+---
+
+## Environment Variables
+
+### Required
+
+| Variable | Description |
+|----------|-------------|
+| `OPENCLAW_ROOT` | Path to the openclaw root directory (default: `~/.openclaw`) |
+| `OPENCLAW_GATEWAY_TOKEN` | Bearer token for the OpenClaw gateway — server-side only, never logged |
+| `MAIDS_DASHBOARD_CONFIRM_SECRET` | Required for all write operations (POST/PATCH/DELETE); stored in `sessionStorage` only |
+
+### Optional
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DASHBOARD_BIND_HOST` | `127.0.0.1` | Bind address for uvicorn |
+| `DASHBOARD_PORT` | `18889` | Listen port |
+| `DASHBOARD_DB_PATH` | `~/.openclaw/workspace/maids/state/dashboard.db` | SQLite database path |
+| `MAIDS_DASHBOARD_MAX_SSE_CLIENTS` | `10` | Maximum concurrent SSE connections |
+| `MAIDS_DASHBOARD_RP_TRANSCRIPT_WINDOW` | `30` | Message context window per RP turn (min 5) |
+| `MAIDS_DASHBOARD_RP_ENGINE_AGENT_ID` | auto | Override which agent handles RP gateway calls |
+
+---
+
+## Quickstart
+
+```bash
+# 1. Install Python dependencies
+pip install -e .
+
+# 2. Set environment variables (PowerShell)
+$env:OPENCLAW_ROOT = "C:\Users\TeaCat\.openclaw"
+$env:OPENCLAW_GATEWAY_TOKEN = "your_token_here"
+$env:MAIDS_DASHBOARD_CONFIRM_SECRET = "your_secret_here"
+
+# 3. Start the backend
+python dashboard_backend.py
+```
+
+Open `http://127.0.0.1:18889` in a browser. The backend serves the pre-built frontend from `static/`.
+
+---
+
+## Rooms
+
+| Room | Purpose |
+|------|---------|
+| **Grand Hall** | Agent overview — sessions, activity, connection status |
+| **Observatory** | Metrics, event log, activity timeline, plot branch inspector |
+| **War Room** | Dispatch failures and agent conflicts |
+| **Garden** | Cron job toggles, heartbeat configuration, settings |
+| **Library** | RP world management — characters, lorebook, plot graph |
+| **Kitchen** | RP commit editor — review and revise turns before they go to canon |
+| **Ballroom** | Multi-agent group RP — create rooms, add participants, broadcast via SSE |
+
+---
+
+## Development
+
+### Backend
+
+```bash
+pip install -e ".[dev]"
+python dashboard_backend.py
+```
+
+### Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev        # dev server with HMR on :5173, proxies /api to :18889
+npm run build      # outputs to ../static/
+```
+
+The Vite dev server proxies `/api/*` to `http://127.0.0.1:18889`, so the backend must be running alongside it.
+
+---
+
+## Tests
+
+```bash
+pytest tests/ -v
+# expected: 179+ tests pass
+```
+
+Static analysis:
+
+```bash
+pyright
+```
+
+---
+
+## Project Structure
+
+```
+dashboard_backend.py   entry point, wires uvicorn + shared state
+api/                   FastAPI routers (one per domain)
+services/              business logic called by routers
+core/                  shared models, utilities
+ingestion.py           background ingestion engine
+sse_manager.py         server-sent events broadcast
+dashboard_db.py        SQLite schema + queries
+frontend/              React app (Vite)
+static/                pre-built frontend (served by FastAPI / Nginx)
+tests/                 pytest suite
+```
+
+---
+
+## Security
+
+The backend is designed for loopback-only use. Key constraints:
+
+- Binds to `127.0.0.1` by default; overrides any non-loopback address with a warning
+- All write endpoints require `X-Confirm-Secret` matching `MAIDS_DASHBOARD_CONFIRM_SECRET`
+- Origin validation on mutating requests: only `127.0.0.1:18889` and `localhost:18889` are accepted
+- Gateway token is used exclusively in backend-to-gateway calls and never included in API responses
+- API responses are passed through `redact_sensitive_data()` before being sent (tokens, secrets, keys → `[REDACTED]`)
+- `MEMORY.md`, `auth.json`, and `auth-profiles.json` are excluded from all observability endpoints
+
+---
+
+## Deployment
+
+See [DEPLOY_GUIDE.md](./DEPLOY_GUIDE.md) for packaging and production deployment (Ubuntu + Nginx + systemd).
