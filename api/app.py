@@ -17,7 +17,6 @@ ALLOWED_ORIGINS = frozenset({
 })
 
 SKIP_CHECK_PATHS = (
-    "/static/",
     "/api/v1/health",
     "/api/v1/stream",
 )
@@ -70,11 +69,6 @@ def create_app() -> FastAPI:
     app.include_router(dispatch.router)
     app.include_router(gateway.router)
     app.include_router(plot.router)
-    app.mount("/static", StaticFiles(directory="static", html=True), name="static")
-
-    @app.get("/")
-    async def root_redirect():
-        from starlette.responses import RedirectResponse
-        return RedirectResponse(url="/static/")
+    app.mount("/", StaticFiles(directory="static", html=True), name="static")
 
     return app

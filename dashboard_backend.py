@@ -88,8 +88,6 @@ def run_server(host: str = "127.0.0.1", port: int = 18889, config: dict[str, Any
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
     config = load_dashboard_config()
-    run_server(
-        host=str(config.get("dashboardBindHost", DEFAULT_DASHBOARD_CONFIG["dashboardBindHost"])),
-        port=int(config.get("dashboardPort", DEFAULT_DASHBOARD_CONFIG["dashboardPort"])),
-        config=config,
-    )
+    host = os.environ.get("DASHBOARD_BIND_HOST") or str(config.get("dashboardBindHost", DEFAULT_DASHBOARD_CONFIG["dashboardBindHost"]))
+    port = int(os.environ.get("DASHBOARD_PORT") or config.get("dashboardPort", DEFAULT_DASHBOARD_CONFIG["dashboardPort"]))
+    run_server(host=host, port=port, config=config)
