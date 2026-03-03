@@ -9,7 +9,7 @@
 ```
 Windows（开发）             服务器（生产）
 ─────────────────           ──────────────────────────────
-package.ps1                 deploy.sh
+deploy/packaging.ps1        deploy/deploy.sh
   ├── npm run build          ├── 解压预构建产物
   ├── 复制 static/           ├── pip install (Python 虚拟环境)
   └── 打包 ZIP               ├── Nginx 代理 /api/ → uvicorn :18889
@@ -26,19 +26,19 @@ package.ps1                 deploy.sh
 
 ```powershell
 # 完整构建并打包（会询问服务器 IP 用于 API 配置）
-.\package.ps1
+.\deploy\packaging.ps1
 
 # 指定 IP 一步到位，自动配置 API 地址
-.\package.ps1 -ServerIP "1.2.3.4"
+.\deploy\packaging.ps1 -ServerIP "1.2.3.4"
 
 # 构建 + 打包 + 自动上传
-.\package.ps1 -ServerIP "1.2.3.4" -ServerUser "root"
+.\deploy\packaging.ps1 -ServerIP "1.2.3.4" -ServerUser "root"
 
 # 跳过构建（已有构建产物时）
-.\package.ps1 -SkipBuild
+.\deploy\packaging.ps1 -SkipBuild
 
 # 同时生成 tar.gz（需要 Git for Windows）
-.\package.ps1 -CreateTar
+.\deploy\packaging.ps1 -CreateTar
 ```
 
 ### 参数说明
@@ -62,7 +62,7 @@ package.ps1                 deploy.sh
 ```bash
 # 1. 上传文件到服务器
 scp maids-dashboard_*.zip root@服务器IP:/root/
-scp deploy.sh root@服务器IP:/root/
+scp deploy/deploy.sh root@服务器IP:/root/
 
 # 2. 登录服务器执行
 ssh root@服务器IP
@@ -120,7 +120,7 @@ curl http://127.0.0.1:18889/api/v1/health
 ### 前端 JS/CSS 404
 ```bash
 ls /var/www/maids-dashboard/assets/
-# 若为空，检查打包时前端是否构建成功（package.ps1 步骤 3）
+# 若为空，检查打包时前端是否构建成功（packaging.ps1 步骤 3）
 ```
 
 ### API 返回 404
