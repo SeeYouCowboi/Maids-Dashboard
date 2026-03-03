@@ -1,0 +1,105 @@
+name: Test & Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ─────────────────────────────────────────────
+  # Job 1: Run tests on every push and PR
+  # ─────────────────────────────────────────────
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -e ".[dev]"
+
+      - name: Run tests
+        run: pytest tests/ -q --tb=short
+
+  # ─────────────────────────────────────────────
+  # Job 2: Build frontend + deploy to server
+  # Runs only on push to main (not on PRs)
+  # ─────────────────────────────────────────────
+  deploy:
+    name: Deploy
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+        # Vite outputs to ../static/ (configured in vite.config.ts)
+        # API calls use relative paths (/api/v1/...) so no env var needed
+
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SERVER_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.SERVER_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Sync code to server
+        run: |
+          rsync -az --delete \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='frontend/node_modules' \
+            --exclude='frontend/dist' \
+            --exclude='__pycache__' \
+            --exclude='*.pyc' \
+            --exclude='*.egg-info' \
+            --exclude='venv' \
+            --exclude='data' \
+            --exclude='logs' \
+            --exclude='.env' \
+            --exclude='tests' \
+            -e "ssh -i ~/.ssh/deploy_key" \
+            ./ "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/opt/maids-dashboard/"
+
+      - name: Restart service
+        run: |
+          ssh -i ~/.ssh/deploy_key \
+            "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}" \
+            bash << 'REMOTE'
+          set -e
+
+          cd /opt/maids-dashboard
+
+          # Update Python dependencies
+          venv/bin/pip install -q -e .
+
+          # Publish new frontend build
+          rm -rf /var/www/maids-dashboard/*
+          cp -r static/. /var/www/maids-dashboard/
+
+          # Restart and verify
+          systemctl restart maids-dashboard
+          sleep 3
+          systemctl is-active --quiet maids-dashboard \
+            && echo "Service is running" \
+            || { echo "Service failed to start"; journalctl -u maids-dashboard --no-pager -n 30; exit 1; }
+          REMOTE
