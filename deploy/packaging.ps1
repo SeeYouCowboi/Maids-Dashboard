@@ -75,11 +75,7 @@ foreach ($pattern in $itemsToRemove) {
     }
 }
 
-$gitDir = Join-Path $ProjectRoot ".git"
-if (Test-Path $gitDir) {
-    Remove-Item -Path $gitDir -Recurse -Force -ErrorAction SilentlyContinue
-    $removedCount++
-}
+# NOTE: .git is excluded from the ZIP via $excludePatterns — do NOT delete it here
 
 Write-Success "Cleaned $removedCount items"
 
