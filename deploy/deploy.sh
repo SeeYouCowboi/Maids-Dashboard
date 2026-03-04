@@ -63,7 +63,19 @@ if [ "$IS_UPDATE" = true ]; then
     [ -f "$APP_DIR/.env" ] && cp "$APP_DIR/.env" "$BACKUP_DIR/"
 
     systemctl stop "$SERVICE_NAME" 2>/dev/null || true
-    echo -e "${GREEN}✓ 备份完成: $BACKUP_DIR${NC}"
+    # Wait up to 15 s for port 18889 to be released after stop
+    for i in $(seq 1 15); do
+        ss -tlnp | grep -q ':18889' || break
+        echo -e "${BLUE}  Waiting for port 18889 to be released... ($i/15)${NC}"
+        sleep 1
+    done
+    # Force-free the port if still occupied after timeout
+    if ss -tlnp | grep -q ':18889'; then
+        echo -e "${YELLOW}  Port still in use, force-killing process on :18889${NC}"
+        fuser -k 18889/tcp 2>/dev/null || true
+        sleep 1
+    fi
+    echo -e "${GREEN}OK  backup done: $BACKUP_DIR${NC}"
 else
     echo -e "${YELLOW}[2/6] 首次部署，跳过备份...${NC}"
     mkdir -p "$APP_DIR"

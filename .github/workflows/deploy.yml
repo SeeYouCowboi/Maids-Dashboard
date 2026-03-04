@@ -109,10 +109,18 @@ jobs:
           rm -rf /var/www/maids-dashboard/*
           cp -r static/. /var/www/maids-dashboard/
 
-          # Restart and verify
-          systemctl restart maids-dashboard
+          # Stop first, wait for port 18889 to be released, then start
+          systemctl stop maids-dashboard 2>/dev/null || true
+          for i in $(seq 1 10); do ss -tlnp | grep -q ':18889' || break; sleep 1; done
+          ss -tlnp | grep -q ':18889' && { fuser -k 18889/tcp 2>/dev/null || true; sleep 1; } || true
+          systemctl start maids-dashboard
           sleep 3
           systemctl is-active --quiet maids-dashboard \
             && echo "Service is running" \
-            || { echo "Service failed to start"; journalctl -u maids-dashboard --no-pager -n 30; exit 1; }
+            || { echo "Service failed to start";
+                 echo "=== err.log (last 50 lines) ===";
+                 tail -50 /opt/maids-dashboard/logs/err.log 2>/dev/null || echo "(err.log not found)";
+                 echo "=== systemd journal ===";
+                 journalctl -u maids-dashboard --no-pager -n 20;
+                 exit 1; }
           REMOTE
