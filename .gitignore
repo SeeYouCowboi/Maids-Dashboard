@@ -26,6 +26,7 @@ canon/.canon_state.json
 # Temporary files
 nul
 session_ingest_temp.py
+maids-dashboard*.zip
 
 # Test temp directories and databases
 tests/tmp*/
@@ -50,6 +51,7 @@ static/index.html
 # Environment
 .env
 *.env
+frontend/.env.*
 
 # OS
 Thumbs.db
