@@ -15,7 +15,6 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 from core.utils import get_openclaw_root, load_config, now_ms
-from core.utils import get_openclaw_root, load_config, now_ms
 
 DEFAULT_CONFIG_REL_PATH = os.path.join("workspace", "maids", "config.json")
 DEFAULT_EVENT_LOG_REL_PATH = os.path.join("workspace", "maids", "state", "events.jsonl")

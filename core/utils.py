@@ -17,7 +17,8 @@ def get_openclaw_root() -> str:
     """Get the OpenClaw root directory.
 
     Checks OPENCLAW_ROOT env var first, then falls back to inferring
-    from this file's location (3 levels up from the package).
+    from this file's location (4 levels up from core/utils.py), and
+    ultimately to ~/.openclaw if the inferred path does not look valid.
     """
     if "OPENCLAW_ROOT" in os.environ:
         return os.environ["OPENCLAW_ROOT"]
@@ -26,7 +27,20 @@ def get_openclaw_root() -> str:
     # So root is 4 levels up (core -> maids-dashboard -> tools -> workspace -> root)
     script_dir = os.path.dirname(os.path.abspath(__file__))
     package_dir = os.path.dirname(script_dir)  # maids-dashboard
-    return os.path.dirname(os.path.dirname(os.path.dirname(package_dir)))
+    inferred = os.path.dirname(os.path.dirname(os.path.dirname(package_dir)))
+
+    # Sanity check: the inferred root should contain an openclaw.json or agents/ dir
+    if os.path.isfile(os.path.join(inferred, "openclaw.json")) or os.path.isdir(os.path.join(inferred, "agents")):
+        return inferred
+
+    # Fallback to ~/.openclaw (the conventional default)
+    fallback = os.path.expanduser("~/.openclaw")
+    logger.warning(
+        "Could not infer OPENCLAW_ROOT from project layout (inferred=%s). "
+        "Falling back to %s. Set OPENCLAW_ROOT env var to suppress this warning.",
+        inferred, fallback,
+    )
+    return fallback
 
 
 def now_ms() -> int:

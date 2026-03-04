@@ -7,6 +7,7 @@ from typing import Any
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 
+from core.utils import get_openclaw_root
 from sse_manager import MAX_SSE_CLIENTS, SSEClient
 from services.config_service import load_dashboard_config
 from services.shared import redact_sensitive_data
@@ -26,8 +27,8 @@ def _build_health_payload() -> tuple[int, dict[str, Any]]:
     db_status = db.health_check()
 
     canon_status: dict[str, Any] = {"ok": False, "path": None, "error": None}
-    openclaw_root = os.path.expanduser("~/.openclaw")
-    canon_db_path = os.path.join(openclaw_root, "workspace/maids/state/canon.db")
+    openclaw_root = get_openclaw_root()
+    canon_db_path = os.path.join(openclaw_root, "workspace", "maids", "state", "canon.db")
     try:
         conn = sqlite3.connect(canon_db_path, timeout=2.0)
         conn.execute("SELECT 1")
@@ -37,7 +38,7 @@ def _build_health_payload() -> tuple[int, dict[str, Any]]:
         canon_status = {"ok": False, "path": canon_db_path, "error": str(exc)}
 
     events_status: dict[str, Any] = {"ok": False, "path": None, "error": None}
-    events_path = os.path.join(openclaw_root, "workspace/maids/state/events.jsonl")
+    events_path = os.path.join(openclaw_root, "workspace", "maids", "state", "events.jsonl")
     try:
         with open(events_path, "r", encoding="utf-8") as f:
             f.read(1)

@@ -150,18 +150,15 @@ if (-not $SkipBuild) {
 
     Write-Success "Frontend built"
 
-    Write-Info "Copying build output to static/..."
+    # Vite outputs directly to ../static/ (outDir in vite.config.ts),
+    # so no copy step is needed. Just verify the build output exists.
     $staticDir = Join-Path $ProjectRoot "static"
-    $distDir   = Join-Path $frontendDir "dist"
-
-    if (-not (Test-Path $staticDir)) {
-        New-Item -ItemType Directory -Path $staticDir -Force | Out-Null
-    } else {
-        Remove-Item -Path "$staticDir\*" -Recurse -Force -ErrorAction SilentlyContinue
+    if (-not (Test-Path (Join-Path $staticDir "index.html"))) {
+        Write-Err "Build completed but static/index.html not found — check vite.config.ts outDir"
+        exit 1
     }
-
-    Copy-Item -Path "$distDir\*" -Destination $staticDir -Recurse -Force
-    Write-Success "Static files copied"
+    $assetCount = (Get-ChildItem (Join-Path $staticDir "assets") -File -ErrorAction SilentlyContinue | Measure-Object).Count
+    Write-Success "Static output verified ($assetCount assets)"
 
     Set-Location $ProjectRoot
 } else {
