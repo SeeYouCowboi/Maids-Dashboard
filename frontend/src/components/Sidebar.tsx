@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Home, ChefHat, BookOpen, BarChart3, Shield, Flower2, Music,
@@ -6,14 +7,16 @@ import {
 import type { SSEState } from '../hooks/useSSE';
 
 const TABS = [
-  { id: 'grand-hall', label: 'Grand Hall', icon: Home, color: 'text-pink-500', bg: 'bg-pink-100' },
-  { id: 'kitchen', label: 'Kitchen', icon: ChefHat, color: 'text-blue-500', bg: 'bg-blue-100' },
-  { id: 'library', label: 'Library', icon: BookOpen, color: 'text-purple-500', bg: 'bg-purple-100' },
+  { id: 'grand-hall',  label: 'Grand Hall',  icon: Home,     color: 'text-pink-500',    bg: 'bg-pink-100' },
+  { id: 'kitchen',     label: 'Kitchen',     icon: ChefHat,  color: 'text-blue-500',    bg: 'bg-blue-100' },
+  { id: 'library',     label: 'Library',     icon: BookOpen, color: 'text-purple-500',  bg: 'bg-purple-100' },
   { id: 'observatory', label: 'Observatory', icon: BarChart3, color: 'text-emerald-500', bg: 'bg-emerald-100' },
-  { id: 'war-room', label: 'War Room', icon: Shield, color: 'text-red-500', bg: 'bg-red-100' },
-  { id: 'garden', label: 'Garden', icon: Flower2, color: 'text-green-500', bg: 'bg-green-100' },
-  { id: 'ballroom', label: 'Ballroom', icon: Music, color: 'text-amber-500', bg: 'bg-amber-100' },
+  { id: 'war-room',    label: 'War Room',    icon: Shield,   color: 'text-red-500',     bg: 'bg-red-100' },
+  { id: 'garden',      label: 'Garden',      icon: Flower2,  color: 'text-green-500',   bg: 'bg-green-100' },
+  { id: 'ballroom',    label: 'Ballroom',    icon: Music,    color: 'text-amber-500',   bg: 'bg-amber-100' },
 ];
+
+const SIDEBAR_WIDTH = 220;
 
 interface SidebarProps {
   activeTab: string | null;
@@ -24,30 +27,58 @@ interface SidebarProps {
   isMobile?: boolean;
 }
 
-export default function Sidebar({ activeTab, onTabClick, isOpen, onToggle, sseState, isMobile = false }: SidebarProps) {
+export default function Sidebar({
+  activeTab, onTabClick, isOpen, onToggle, sseState, isMobile = false,
+}: SidebarProps) {
+
+  // ── Touch state (always declared — Rules of Hooks) ───────────────────────
+  const touchStartX = useRef(0);
+
+  const handleSidebarTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+  const handleSidebarTouchEnd = (e: React.TouchEvent) => {
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    if (!isOpen && dx > 36) onToggle();  // swipe right → expand
+    if (isOpen  && dx < -36) onToggle(); // swipe left  → collapse
+  };
+
+  // ════════════════════════════════════════════════════════════════════════
+  //  MOBILE variant
+  // ════════════════════════════════════════════════════════════════════════
   if (isMobile) {
     return (
       <>
+        {/* Backdrop */}
         <AnimatePresence>
           {isOpen && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: 0.22 }}
               onClick={onToggle}
               className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm"
             />
           )}
         </AnimatePresence>
 
+        {/* Sidebar panel — slides fully off-screen when closed */}
         <motion.aside
           initial={false}
-          animate={{ x: isOpen ? 0 : -220 }}
+          animate={{ x: isOpen ? 0 : -SIDEBAR_WIDTH }}
           transition={{ type: 'spring', bounce: 0, duration: 0.4 }}
-          className="fixed inset-y-0 left-0 z-50 w-[220px] bg-white/90 backdrop-blur-xl border-r border-white/50 shadow-[4px_0_24px_-12px_rgba(0,0,0,0.2)] flex flex-col"
+          className="fixed inset-y-0 left-0 z-50 flex flex-col"
+          style={{ width: SIDEBAR_WIDTH }}
+          onTouchStart={handleSidebarTouchStart}
+          onTouchEnd={handleSidebarTouchEnd}
         >
-          <div className="px-4 py-6 flex items-center select-none">
+          {/* Background */}
+          <div className="absolute inset-0 bg-white/90 backdrop-blur-xl border-r border-white/50 shadow-[4px_0_24px_-12px_rgba(0,0,0,0.2)]" />
+
+
+          {/* Header */}
+          <div className="relative px-4 py-6 flex items-center select-none">
             <div className="bg-pink-100 p-2 rounded-2xl shrink-0 shadow-sm">
               <Heart className="w-8 h-8 text-pink-500 fill-pink-500 animate-pulse" />
             </div>
@@ -57,7 +88,7 @@ export default function Sidebar({ activeTab, onTabClick, isOpen, onToggle, sseSt
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto overflow-x-hidden">
+          <nav className="relative flex-1 px-3 py-2 space-y-1 overflow-y-auto overflow-x-hidden">
             {TABS.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -66,20 +97,22 @@ export default function Sidebar({ activeTab, onTabClick, isOpen, onToggle, sseSt
                   key={tab.id}
                   type="button"
                   onClick={() => onTabClick(tab.id)}
-                  className={`w-full flex items-center px-2 py-3 rounded-2xl transition-all duration-300 relative overflow-hidden group select-none ${isActive ? 'text-gray-900 font-bold shadow-sm' : 'text-gray-500 hover:bg-white/50'
-                    }`}
+                  className={`w-full flex items-center px-2 py-3 rounded-2xl transition-all duration-300 relative overflow-hidden group select-none ${
+                    isActive ? 'text-gray-900 font-bold shadow-sm' : 'text-gray-500 hover:bg-white/50'
+                  }`}
                 >
                   {isActive && (
                     <motion.div
                       layoutId="activeTabMobile"
-                      className={`absolute inset-0 ${tab.bg} opacity-50`}
+                      className={`absolute inset-0 ${tab.bg} opacity-60`}
                       initial={false}
                       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                     />
                   )}
                   <div
-                    className={`relative z-10 p-2 rounded-xl transition-colors shrink-0 ${isActive ? 'bg-white shadow-sm' : 'bg-white/60 group-hover:bg-white'
-                      }`}
+                    className={`relative z-10 p-2 rounded-xl transition-colors shrink-0 ${
+                      isActive ? 'bg-white shadow-sm' : 'bg-white/60 group-hover:bg-white'
+                    }`}
                   >
                     <Icon className={`w-5 h-5 ${isActive ? tab.color : 'text-gray-400 group-hover:text-pink-400'}`} />
                   </div>
@@ -91,15 +124,17 @@ export default function Sidebar({ activeTab, onTabClick, isOpen, onToggle, sseSt
             })}
           </nav>
 
-          <div className="p-4 w-full shrink-0 flex flex-col items-center gap-3 overflow-hidden pb-6">
+          {/* Footer: connection status + welcome card */}
+          <div className="relative p-4 w-full shrink-0 flex flex-col items-center gap-3 overflow-hidden pb-6">
             <div
-              className={`flex items-center rounded-2xl text-xs font-semibold transition-all duration-300 relative overflow-hidden shadow-sm shrink-0 h-8 w-[188px] px-3 justify-start ${sseState === 'connected'
+              className={`flex items-center rounded-2xl text-xs font-semibold transition-all duration-300 relative overflow-hidden shadow-sm shrink-0 h-8 w-[188px] px-3 justify-start ${
+                sseState === 'connected'
                   ? 'bg-emerald-100 text-emerald-700'
                   : sseState === 'connecting'
                     ? 'bg-amber-100 text-amber-700'
                     : 'bg-red-100 text-red-700'
-                }`}
-              title={sseState === 'connected' ? 'Live' : sseState === 'connecting' ? 'Connecting...' : 'Disconnected'}
+              }`}
+              title={sseState === 'connected' ? 'Live' : sseState === 'connecting' ? 'Connecting…' : 'Disconnected'}
             >
               {sseState === 'connected' ? (
                 <Wifi className="w-3 h-3 shrink-0" />
@@ -112,7 +147,7 @@ export default function Sidebar({ activeTab, onTabClick, isOpen, onToggle, sseSt
                 {sseState === 'connected'
                   ? 'Live'
                   : sseState === 'connecting'
-                    ? 'Connecting...'
+                    ? 'Connecting…'
                     : 'Disconnected'}
               </span>
             </div>
@@ -130,6 +165,9 @@ export default function Sidebar({ activeTab, onTabClick, isOpen, onToggle, sseSt
     );
   }
 
+  // ════════════════════════════════════════════════════════════════════════
+  //  DESKTOP variant (unchanged from original)
+  // ════════════════════════════════════════════════════════════════════════
   return (
     <motion.aside
       initial={false}
@@ -179,8 +217,9 @@ export default function Sidebar({ activeTab, onTabClick, isOpen, onToggle, sseSt
               key={tab.id}
               type="button"
               onClick={() => onTabClick(tab.id)}
-              className={`w-full flex items-center px-2 py-3 rounded-2xl transition-all duration-300 relative overflow-hidden group select-none ${isActive ? 'text-gray-900 font-bold shadow-sm' : 'text-gray-500 hover:bg-white/50'
-                }`}
+              className={`w-full flex items-center px-2 py-3 rounded-2xl transition-all duration-300 relative overflow-hidden group select-none ${
+                isActive ? 'text-gray-900 font-bold shadow-sm' : 'text-gray-500 hover:bg-white/50'
+              }`}
               title={!isOpen ? tab.label : undefined}
             >
               {isActive && (
@@ -192,8 +231,9 @@ export default function Sidebar({ activeTab, onTabClick, isOpen, onToggle, sseSt
                 />
               )}
               <div
-                className={`relative z-10 p-2 rounded-xl transition-colors shrink-0 ${isActive ? 'bg-white shadow-sm' : 'bg-white/60 group-hover:bg-white'
-                  }`}
+                className={`relative z-10 p-2 rounded-xl transition-colors shrink-0 ${
+                  isActive ? 'bg-white shadow-sm' : 'bg-white/60 group-hover:bg-white'
+                }`}
               >
                 <Icon className={`w-5 h-5 ${isActive ? tab.color : 'text-gray-400 group-hover:text-pink-400'}`} />
               </div>
@@ -217,14 +257,16 @@ export default function Sidebar({ activeTab, onTabClick, isOpen, onToggle, sseSt
 
       <div className="p-4 w-full shrink-0 flex flex-col items-center gap-3 overflow-hidden pb-6">
         <div
-          className={`flex items-center rounded-2xl text-xs font-semibold transition-all duration-300 relative overflow-hidden shadow-sm shrink-0 h-8 ${isOpen ? 'w-[188px] px-3 justify-start' : 'w-8 justify-center'
-            } ${sseState === 'connected'
+          className={`flex items-center rounded-2xl text-xs font-semibold transition-all duration-300 relative overflow-hidden shadow-sm shrink-0 h-8 ${
+            isOpen ? 'w-[188px] px-3 justify-start' : 'w-8 justify-center'
+          } ${
+            sseState === 'connected'
               ? 'bg-emerald-100 text-emerald-700'
               : sseState === 'connecting'
                 ? 'bg-amber-100 text-amber-700'
                 : 'bg-red-100 text-red-700'
-            }`}
-          title={sseState === 'connected' ? 'Live' : sseState === 'connecting' ? 'Connecting...' : 'Disconnected'}
+          }`}
+          title={sseState === 'connected' ? 'Live' : sseState === 'connecting' ? 'Connecting…' : 'Disconnected'}
         >
           {sseState === 'connected' ? (
             <Wifi className="w-3 h-3 shrink-0" />
@@ -246,7 +288,7 @@ export default function Sidebar({ activeTab, onTabClick, isOpen, onToggle, sseSt
                 {sseState === 'connected'
                   ? 'Live'
                   : sseState === 'connecting'
-                    ? 'Connecting...'
+                    ? 'Connecting…'
                     : 'Disconnected'}
               </motion.span>
             )}
