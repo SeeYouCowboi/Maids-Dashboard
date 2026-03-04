@@ -12,6 +12,7 @@ from typing import Iterator
 
 logger = logging.getLogger(__name__)
 
+
 class DashboardDB:
     """Thread-safe dashboard SQLite wrapper using per-thread connections."""
 
@@ -67,11 +68,13 @@ class DashboardDB:
 
                 CREATE TABLE IF NOT EXISTS rp_room(
                     id TEXT PRIMARY KEY,
+                    name TEXT,
                     created_at INTEGER,
                     world_id TEXT,
                     play_id TEXT,
                     branch_id TEXT,
-                    status TEXT
+                    status TEXT,
+                    archived INTEGER DEFAULT 0
                 );
 
                 CREATE TABLE IF NOT EXISTS rp_room_participant(
@@ -85,9 +88,47 @@ class DashboardDB:
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     room_id TEXT,
                     character_id TEXT,
+                    author TEXT,
+                    role TEXT DEFAULT 'assistant',
                     content TEXT,
                     created_at INTEGER,
                     kind TEXT
+                );
+
+                CREATE TABLE IF NOT EXISTS rp_lore_entry(
+                    id TEXT PRIMARY KEY,
+                    world_id TEXT NOT NULL DEFAULT 'default',
+                    title TEXT NOT NULL,
+                    body TEXT DEFAULT '',
+                    tags_json TEXT DEFAULT '[]',
+                    triggers_json TEXT DEFAULT '[]',
+                    match_type TEXT DEFAULT 'keyword',
+                    priority INTEGER DEFAULT 0,
+                    insert_at TEXT DEFAULT 'start',
+                    enabled INTEGER DEFAULT 1,
+                    created_at INTEGER,
+                    updated_at INTEGER
+                );
+
+                CREATE TABLE IF NOT EXISTS rp_character(
+                    id TEXT PRIMARY KEY,
+                    world_id TEXT NOT NULL DEFAULT 'default',
+                    name TEXT NOT NULL,
+                    description TEXT DEFAULT '',
+                    personality TEXT DEFAULT '',
+                    scenario TEXT DEFAULT '',
+                    first_mes TEXT DEFAULT '',
+                    mes_example TEXT DEFAULT '',
+                    system_prompt TEXT DEFAULT '',
+                    post_history_instructions TEXT DEFAULT '',
+                    creator_notes TEXT DEFAULT '',
+                    character_version TEXT DEFAULT '',
+                    tags_json TEXT DEFAULT '[]',
+                    creator TEXT DEFAULT '',
+                    extensions_json TEXT DEFAULT '{}',
+                    avatar_url TEXT,
+                    created_at INTEGER,
+                    updated_at INTEGER
                 );
                 """
             )

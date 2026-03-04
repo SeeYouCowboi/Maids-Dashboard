@@ -2,15 +2,16 @@ from __future__ import annotations
 
 import os
 import sqlite3
+from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 
 from core.utils import get_openclaw_root
 from sse_manager import MAX_SSE_CLIENTS, SSEClient
 from services.config_service import load_dashboard_config
-from services.shared import redact_sensitive_data
+from services.shared import redact_sensitive_data, write_bytes_atomic
 from services.state import get_db, get_sse
 
 router = APIRouter(prefix="/api/v1", tags=["heartbeat"])
@@ -28,7 +29,9 @@ def _build_health_payload() -> tuple[int, dict[str, Any]]:
 
     canon_status: dict[str, Any] = {"ok": False, "path": None, "error": None}
     openclaw_root = get_openclaw_root()
-    canon_db_path = os.path.join(openclaw_root, "workspace", "maids", "state", "canon.db")
+    canon_db_path = os.path.join(
+        openclaw_root, "workspace", "maids", "state", "canon.db"
+    )
     try:
         conn = sqlite3.connect(canon_db_path, timeout=2.0)
         conn.execute("SELECT 1")
@@ -38,7 +41,9 @@ def _build_health_payload() -> tuple[int, dict[str, Any]]:
         canon_status = {"ok": False, "path": canon_db_path, "error": str(exc)}
 
     events_status: dict[str, Any] = {"ok": False, "path": None, "error": None}
-    events_path = os.path.join(openclaw_root, "workspace", "maids", "state", "events.jsonl")
+    events_path = os.path.join(
+        openclaw_root, "workspace", "maids", "state", "events.jsonl"
+    )
     try:
         with open(events_path, "r", encoding="utf-8") as f:
             f.read(1)
@@ -54,7 +59,11 @@ def _build_health_payload() -> tuple[int, dict[str, Any]]:
         }
     )
 
-    all_ok = bool(db_status.get("ok")) and bool(canon_status.get("ok")) and bool(events_status.get("ok"))
+    all_ok = (
+        bool(db_status.get("ok"))
+        and bool(canon_status.get("ok"))
+        and bool(events_status.get("ok"))
+    )
     overall = "ok" if all_ok else "degraded"
     status = 200 if all_ok else 503
 
@@ -123,3 +132,26 @@ def sse_stream() -> StreamingResponse:
             "X-Accel-Buffering": "no",
         },
     )
+
+
+@router.post("/heartbeat/update")
+def update_heartbeat(payload: dict[str, Any]) -> dict[str, Any]:
+    content = payload.get("content", "")
+    if not isinstance(content, str):
+        raise HTTPException(
+            status_code=400, detail={"error": "content must be a string"}
+        )
+    if len(content) > 102400:
+        raise HTTPException(
+            status_code=400, detail={"error": "content exceeds 100KB limit"}
+        )
+    openclaw_root = get_openclaw_root()
+    heartbeat_path = Path(openclaw_root) / "workspace" / "maids" / "HEARTBEAT.md"
+    try:
+        heartbeat_path.parent.mkdir(parents=True, exist_ok=True)
+        write_bytes_atomic(heartbeat_path, content.encode("utf-8"))
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500, detail={"error": f"failed to write HEARTBEAT.md: {exc}"}
+        )
+    return {"ok": True, "path": str(heartbeat_path), "size": len(content)}

@@ -9,13 +9,28 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
-from api import canon, config, cron, delivery, dispatch, gateway, heartbeat, incidents, maids, plot, sessions
+from api import (
+    canon,
+    config,
+    cron,
+    delivery,
+    dispatch,
+    gateway,
+    heartbeat,
+    incidents,
+    maids,
+    plot,
+    rp,
+    sessions,
+)
 
 
-ALLOWED_ORIGINS = frozenset({
-    "http://127.0.0.1:18889",
-    "http://localhost:18889",
-})
+ALLOWED_ORIGINS = frozenset(
+    {
+        "http://127.0.0.1:18889",
+        "http://localhost:18889",
+    }
+)
 
 SKIP_CHECK_PATHS = (
     "/api/v1/health",
@@ -70,8 +85,11 @@ def create_app() -> FastAPI:
     app.include_router(dispatch.router)
     app.include_router(gateway.router)
     app.include_router(plot.router)
+    app.include_router(rp.router)
     _static_dir = Path(__file__).parent.parent / "static"
-    _static_dir.mkdir(parents=True, exist_ok=True)  # create if absent (e.g. CI without frontend build)
+    _static_dir.mkdir(
+        parents=True, exist_ok=True
+    )  # create if absent (e.g. CI without frontend build)
     app.mount("/", StaticFiles(directory=str(_static_dir), html=True), name="static")
 
     return app

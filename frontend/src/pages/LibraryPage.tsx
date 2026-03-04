@@ -133,7 +133,7 @@ export default function LibraryPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Lorebook panel */}
         <div className="space-y-4">
           <GlassCard title="Lorebook" color="purple">
@@ -150,7 +150,7 @@ export default function LibraryPage() {
                 </button>
               }
             />
-            <div className="mt-4 space-y-2 max-h-64 overflow-y-auto pr-1">
+            <div className="mt-4 space-y-2 max-h-80 sm:max-h-96 overflow-y-auto pr-1">
               {loreLoading ? (
                 <div className="flex justify-center py-6"><LoadingSpinner /></div>
               ) : loreEntries.length === 0 ? (
@@ -258,7 +258,7 @@ export default function LibraryPage() {
             ) : characters.length === 0 ? (
               <EmptyState icon={<User className="w-8 h-8" />} message="No character cards." />
             ) : (
-              <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto pr-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-96 overflow-y-auto pr-1">
                 {characters.map((char, i) => (
                   <motion.button
                     key={char.id}

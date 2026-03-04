@@ -123,7 +123,7 @@ export default function ObservatoryPage() {
 
       {/* Health metric cards */}
       {metrics && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
             { label: 'Active Sessions', value: metrics.active_sessions, color: 'emerald', ok: metrics.active_sessions >= 0 },
             { label: 'Cron Errors', value: metrics.cron_errors, color: 'amber', ok: metrics.cron_errors === 0 },

@@ -138,9 +138,9 @@ export default function BallroomPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6" style={{ minHeight: '60vh' }}>
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 min-h-[60vh]">
         {/* Room selector + participants */}
-        <div className="xl:col-span-1 space-y-4">
+        <div className="lg:col-span-1 space-y-4">
           <GlassCard title="Rooms" color="amber">
             <div className="space-y-3">
               {/* Room selector */}
@@ -233,7 +233,7 @@ export default function BallroomPage() {
         </div>
 
         {/* Message area */}
-        <div className="xl:col-span-3">
+        <div className="lg:col-span-3 min-h-[50vh]">
           <GlassCard className="h-full flex flex-col" color="amber">
             <div className="flex items-center gap-2 mb-4">
               <MessageSquare className="w-4 h-4 text-amber-500" />
@@ -252,7 +252,7 @@ export default function BallroomPage() {
               </div>
             ) : (
               <>
-                <div className="flex-1 overflow-y-auto space-y-3 mb-4 min-h-[300px] max-h-[500px]">
+                <div className="flex-1 overflow-y-auto space-y-3 mb-4">
                   {msgLoading ? (
                     <div className="flex justify-center py-8"><LoadingSpinner /></div>
                   ) : messages.length === 0 ? (

@@ -1,5 +1,6 @@
 import { useState, useLayoutEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { Menu } from 'lucide-react';
 import InteractiveBackground from './components/InteractiveBackground';
 import Sidebar from './components/Sidebar';
 import WelcomePage from './pages/WelcomePage';
@@ -26,22 +27,32 @@ function PageContent({ activeTab }: { activeTab: string }) {
   }
 }
 
+const MOBILE_BREAKPOINT = 1024;
+
 export default function App() {
   const [activeTab, setActiveTab] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
   const { secret } = useConfirmSecret();
   const { state: sseState } = useSSE(secret);
 
   useLayoutEffect(() => {
-    const mq = window.matchMedia('(max-width: 1024px)');
+    const mq = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`);
+    setIsMobile(mq.matches);
     setIsSidebarOpen(!mq.matches);
-    const handler = (e: MediaQueryListEvent) => setIsSidebarOpen(!e.matches);
+    const handler = (e: MediaQueryListEvent) => {
+      setIsMobile(e.matches);
+      setIsSidebarOpen(!e.matches);
+    };
     mq.addEventListener('change', handler);
     return () => mq.removeEventListener('change', handler);
   }, []);
 
   const handleTabClick = (tabId: string) => {
     setActiveTab(tabId);
+    if (isMobile) {
+      setIsSidebarOpen(false);
+    }
   };
 
   return (
@@ -61,9 +72,20 @@ export default function App() {
         isOpen={isSidebarOpen}
         onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
         sseState={sseState}
+        isMobile={isMobile}
       />
 
       <main className="flex-1 relative overflow-y-auto overflow-x-hidden z-10">
+        {isMobile && (
+          <button
+            type="button"
+            onClick={() => setIsSidebarOpen(true)}
+            className="absolute top-4 left-4 z-30 p-2.5 bg-white/80 backdrop-blur-md rounded-2xl shadow-sm border border-white/60 text-pink-500 hover:text-pink-600 hover:bg-white transition-all duration-300"
+            aria-label="Open menu"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+        )}
         <AnimatePresence mode="wait">
           {activeTab === null ? (
             <motion.div key="welcome" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>

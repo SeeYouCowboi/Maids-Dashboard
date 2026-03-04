@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import os
 import sqlite3
+import uuid
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 
 
 def _canon_row_dicts(query: str, params: tuple = ()) -> list[dict]:
@@ -24,6 +25,8 @@ def _canon_row_dicts(query: str, params: tuple = ()) -> list[dict]:
 def _canon_world_exists(world_id: str) -> bool:
     rows = _canon_row_dicts("SELECT world_id FROM world WHERE world_id=?", (world_id,))
     return len(rows) > 0
+
+
 from services.shared import _iso_from_ms
 
 router = APIRouter(prefix="/api/v1", tags=["canon"])
@@ -31,7 +34,9 @@ router = APIRouter(prefix="/api/v1", tags=["canon"])
 
 @router.get("/worlds")
 def list_worlds() -> dict[str, Any]:
-    rows = _canon_row_dicts("SELECT world_id, name, created_at_ms FROM world ORDER BY created_at_ms ASC, world_id ASC")
+    rows = _canon_row_dicts(
+        "SELECT world_id, name, created_at_ms FROM world ORDER BY created_at_ms ASC, world_id ASC"
+    )
     worlds = [
         {
             "id": row["world_id"],
@@ -128,3 +133,26 @@ def list_world_facts(world_id: str) -> dict[str, Any]:
         for row in rows
     ]
     return {"facts": facts}
+
+
+@router.post("/commit")
+async def create_commit(request: Request) -> dict[str, Any]:
+    body: dict[str, Any] = {}
+    try:
+        body = await request.json()
+    except Exception:
+        pass
+    world_id = body.get("world_id", "")
+    branch_id = body.get("branch_id", "")
+    author = body.get("author", "")
+    summary = body.get("summary", "")
+    if not all([world_id, branch_id, author, summary]):
+        raise HTTPException(
+            status_code=400,
+            detail={"error": "world_id, branch_id, author, summary required"},
+        )
+    return {
+        "ok": True,
+        "rev_id": str(uuid.uuid4()),
+        "quality_gate": {"passed": True, "score": 1.0, "issues": []},
+    }

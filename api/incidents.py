@@ -114,7 +114,9 @@ def metrics_summary() -> dict[str, Any]:
     delivery_failures = 0
     try:
         with db.get_connection() as conn:
-            row = conn.execute("SELECT COUNT(*) as cnt FROM delivery_failure").fetchone()
+            row = conn.execute(
+                "SELECT COUNT(*) as cnt FROM delivery_failure"
+            ).fetchone()
             delivery_failures = row["cnt"] if row else 0
     except Exception:
         pass
@@ -150,3 +152,30 @@ def dispatch_incidents() -> dict[str, Any]:
         "count": len(incidents),
         "disclaimer": DISPATCH_DIAGNOSIS_DISCLAIMER,
     }
+
+
+@router.post("/conflicts/{conflict_id}/resolve")
+async def resolve_conflict(conflict_id: str, request: Request) -> dict[str, Any]:
+    body: dict[str, Any] = {}
+    try:
+        body = await request.json()
+    except Exception:
+        pass
+    resolution = body.get("resolution", "manual")
+
+    import os, sqlite3
+
+    openclaw_root = os.path.expanduser("~/.openclaw")
+    db_path = os.path.join(openclaw_root, "workspace/maids/state/canon.db")
+    try:
+        conn = sqlite3.connect(db_path, timeout=5.0)
+        conn.execute(
+            "UPDATE canon_conflict SET status=? WHERE conflict_id=?",
+            (resolution, conflict_id),
+        )
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
+
+    return {"ok": True, "conflict_id": conflict_id, "resolution": resolution}
