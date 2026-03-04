@@ -71,6 +71,7 @@ def create_app() -> FastAPI:
     app.include_router(gateway.router)
     app.include_router(plot.router)
     _static_dir = Path(__file__).parent.parent / "static"
+    _static_dir.mkdir(parents=True, exist_ok=True)  # create if absent (e.g. CI without frontend build)
     app.mount("/", StaticFiles(directory=str(_static_dir), html=True), name="static")
 
     return app
