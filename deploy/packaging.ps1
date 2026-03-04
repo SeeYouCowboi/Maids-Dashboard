@@ -55,7 +55,7 @@ $itemsToRemove = @(
     "node_modules", ".venv", "venv", "__pycache__", ".pytest_cache",
     ".mypy_cache", ".tox", "*.pyc", "*.pyo", "*.egg-info",
     "dist", "build", "frontend\dist", "frontend\node_modules",
-    "static\assets", "*.log", "*.zip", "*.tar.gz"
+    "static\assets", "*.log", "*.zip", "*.tar.gz", "nul"
 )
 
 $removedCount = 0
@@ -105,10 +105,13 @@ if (-not $SkipBuild) {
 
     Set-Location $frontendDir
 
+    $prevEAP = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
     npm install 2>&1 | ForEach-Object {
         if ($_ -match "ERR!|^error") { Write-Err $_ }
         elseif ($_ -match "WARN")    { Write-Warn $_ }
     }
+    $ErrorActionPreference = $prevEAP
 
     if ($LASTEXITCODE -ne 0) {
         Write-Err "npm install failed"
@@ -139,9 +142,12 @@ if (-not $SkipBuild) {
         Write-Info "API base: /api (relative, handled by Nginx)"
     }
 
+    $prevEAP = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
     npm run build 2>&1 | ForEach-Object {
         if ($_ -match "ERR!|^error") { Write-Err $_ }
     }
+    $ErrorActionPreference = $prevEAP
 
     if ($LASTEXITCODE -ne 0) {
         Write-Err "Frontend build failed"
@@ -201,7 +207,8 @@ $excludePatterns = @(
     "node_modules", ".venv", "venv", "__pycache__", ".pytest_cache",
     ".mypy_cache", ".tox", ".git", ".gitignore", "*.pyc", "*.pyo",
     "*.egg-info", "dist", "build", "frontend\node_modules", "frontend\dist",
-    "*.zip", "*.tar.gz", "tests", "*.log"
+    "*.zip", "*.tar.gz", "tests", "*.log",
+    ".vs", ".agents", ".claude", ".sisyphus", ".github", ".ruff_cache"
 )
 
 Write-Info "Creating ZIP: $outputZip"
@@ -214,10 +221,14 @@ try {
     New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
 
     Get-ChildItem -Path $ProjectRoot -Exclude $excludePatterns | ForEach-Object {
-        if ($_.PSIsContainer) {
-            Copy-Item -Path $_.FullName -Destination $tempDir -Recurse -Force
-        } else {
-            Copy-Item -Path $_.FullName -Destination $tempDir -Force
+        try {
+            if ($_.PSIsContainer) {
+                Copy-Item -Path $_.FullName -Destination $tempDir -Recurse -Force -ErrorAction Stop
+            } else {
+                Copy-Item -Path $_.FullName -Destination $tempDir -Force -ErrorAction Stop
+            }
+        } catch {
+            Write-Warn "Skipped (locked/inaccessible): $($_.Name)"
         }
     }
 
@@ -231,8 +242,8 @@ try {
 
 } catch {
     Write-Err "ZIP creation failed: $_"
-    Write-Info "Falling back to Compress-Archive..."
-    Compress-Archive -Path "$ProjectRoot\*" -DestinationPath (Join-Path $ProjectRoot $outputZip) -Force
+    if (Test-Path $tempDir) { Remove-Item -Path $tempDir -Recurse -Force -ErrorAction SilentlyContinue }
+    exit 1
 }
 
 if ($CreateTar) {
