@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
@@ -69,6 +70,7 @@ def create_app() -> FastAPI:
     app.include_router(dispatch.router)
     app.include_router(gateway.router)
     app.include_router(plot.router)
-    app.mount("/", StaticFiles(directory="static", html=True), name="static")
+    _static_dir = Path(__file__).parent.parent / "static"
+    app.mount("/", StaticFiles(directory=str(_static_dir), html=True), name="static")
 
     return app

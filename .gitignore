@@ -39,6 +39,10 @@ node_modules/
 dist/
 .npm/
 
+# Frontend build output — never commit; run `cd frontend && npm run build` to regenerate
+static/assets/
+static/index.html
+
 # IDE
 *.code-workspace
 .vscode/
