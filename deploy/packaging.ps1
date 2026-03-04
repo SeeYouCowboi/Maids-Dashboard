@@ -52,10 +52,19 @@ Write-Host ""
 Write-ColorOutput -Message "[1/6] Cleaning dev artifacts..." -Color Yellow
 
 $itemsToRemove = @(
-    "node_modules", ".venv", "venv", "__pycache__", ".pytest_cache",
-    ".mypy_cache", ".tox", "*.pyc", "*.pyo", "*.egg-info",
-    "dist", "build", "frontend\dist", "frontend\node_modules",
-    "static\assets", "*.log", "*.zip", "*.tar.gz", "nul"
+    # Python bytecode / cache — regenerated automatically, safe to delete
+    "__pycache__", ".pytest_cache", ".mypy_cache", ".tox",
+    "*.pyc", "*.pyo", "*.egg-info",
+    # Frontend build artefacts — rebuilt by npm run build
+    "frontend\dist",
+
+    # Static output — rebuilt by Vite
+    "static\assets", "static\index.html",
+    # Leftover files / old packages
+    "*.log", "*.zip", "*.tar.gz", "nul"
+    # NOTE: venv/.venv, node_modules, frontend\node_modules are intentionally NOT listed here.
+    # They are excluded from the ZIP via `$excludePatterns` and must NOT be deleted
+    # from the local dev environment (especially dangerous with -SkipBuild).
 )
 
 $removedCount = 0
