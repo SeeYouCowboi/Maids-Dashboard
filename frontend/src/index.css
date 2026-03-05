@@ -32,21 +32,55 @@ body {
   background-color: var(--color-bg-main);
   color: var(--color-text-main);
   font-family: var(--font-sans);
-  scrollbar-color: theme(colors.pink.300) transparent;
+  /* Light mode: soft pink scrollbar */
+  scrollbar-color: var(--color-pink-300) transparent;
+  scrollbar-width: thin;
 }
 
-/* Custom scrollbar for cute look */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+/* ── Scrollbar: desktop (pointer device) ─────────────────────────────────── */
+@media (hover: hover) and (pointer: fine) {
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-pink-300);
+    border-radius: 999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-pink-400);
+  }
+
+  /* Deep dark mode — muted rose, not eye-searing */
+  @media (prefers-color-scheme: dark) {
+    ::-webkit-scrollbar-thumb {
+      background: rgba(244, 114, 182, 0.25); /* pink-400 @25% opacity */
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(244, 114, 182, 0.45);
+    }
+  }
 }
-::-webkit-scrollbar-track {
-  background: transparent;
+
+/* ── Scrollbar: mobile / touch (minimal, non-intrusive) ─────────────────── */
+@media (hover: none), (pointer: coarse) {
+  /* Firefox */
+  * {
+    scrollbar-width: none;
+  }
+  /* Chrome / Safari / WebKit */
+  ::-webkit-scrollbar {
+    width: 0px;
+    height: 0px;
+  }
 }
-::-webkit-scrollbar-thumb {
-  background: var(--color-pink-300);
-  border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: var(--color-pink-400);
+
+/* ── Dark mode: Firefox scrollbar-color override ─────────────────────────── */
+@media (prefers-color-scheme: dark) {
+  body {
+    scrollbar-color: rgba(244, 114, 182, 0.28) transparent;
+  }
 }
