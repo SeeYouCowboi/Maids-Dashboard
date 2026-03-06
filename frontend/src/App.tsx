@@ -1,4 +1,4 @@
-import { useState, useLayoutEffect, useRef, useCallback } from 'react';
+import { useState, useLayoutEffect, useEffect, useRef, useCallback } from 'react';
 import { flushSync } from 'react-dom';
 import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from 'motion/react';
 import {
@@ -46,13 +46,13 @@ const PAGE_META: Record<PageId, {
   dotColor: string;
   textColor: string;
 }> = {
-  'grand-hall':  { label: 'Grand Hall',   icon: Home,     dotColor: 'bg-pink-500',    textColor: 'text-pink-500' },
-  'kitchen':     { label: 'Kitchen',      icon: ChefHat,  dotColor: 'bg-blue-500',    textColor: 'text-blue-500' },
-  'library':     { label: 'Library',      icon: BookOpen, dotColor: 'bg-purple-500',  textColor: 'text-purple-500' },
-  'observatory': { label: 'Observatory',  icon: BarChart3,dotColor: 'bg-emerald-500', textColor: 'text-emerald-500' },
-  'war-room':    { label: 'War Room',     icon: Shield,   dotColor: 'bg-red-500',     textColor: 'text-red-500' },
-  'garden':      { label: 'Garden',       icon: Flower2,  dotColor: 'bg-green-500',   textColor: 'text-green-500' },
-  'ballroom':    { label: 'Ballroom',     icon: Music,    dotColor: 'bg-amber-500',   textColor: 'text-amber-500' },
+  'grand-hall': { label: 'Grand Hall', icon: Home, dotColor: 'bg-pink-500', textColor: 'text-pink-500' },
+  'kitchen': { label: 'Kitchen', icon: ChefHat, dotColor: 'bg-blue-500', textColor: 'text-blue-500' },
+  'library': { label: 'Library', icon: BookOpen, dotColor: 'bg-purple-500', textColor: 'text-purple-500' },
+  'observatory': { label: 'Observatory', icon: BarChart3, dotColor: 'bg-emerald-500', textColor: 'text-emerald-500' },
+  'war-room': { label: 'War Room', icon: Shield, dotColor: 'bg-red-500', textColor: 'text-red-500' },
+  'garden': { label: 'Garden', icon: Flower2, dotColor: 'bg-green-500', textColor: 'text-green-500' },
+  'ballroom': { label: 'Ballroom', icon: Music, dotColor: 'bg-amber-500', textColor: 'text-amber-500' },
 };
 
 // Rubber-band resistance: returns a damped displacement that asymptotically
@@ -63,9 +63,11 @@ function rubberBand(x: number, limit: number): number {
   return sign * limit * (1 - Math.exp(-abs / (limit * 1.3)));
 }
 
-const PULL_LIMIT = 76;           // max visual displacement in px
-const SWITCH_THRESHOLD = 0.58;  // fraction of PULL_LIMIT that triggers page switch
-const WHEEL_ACCUM_THRESHOLD = 260; // accumulated wheel delta that triggers page switch
+const PULL_LIMIT = 76;
+const SWITCH_THRESHOLD = 0.58;
+const WHEEL_ACCUM_THRESHOLD = 260;
+
+let _isTransitioning = false;
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<string | null>(null);
@@ -76,12 +78,13 @@ export default function App() {
   const { state: sseState } = useSSE(secret);
 
   // ── Elastic scroll refs ──────────────────────────────────────────────────
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollElRef = useRef<HTMLDivElement | null>(null);
   const touchStartY = useRef(0);
   const isPulling = useRef(false);
-  const isTransitioning = useRef(false);
-  const wheelAccum = useRef(0);
-  const wheelTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // pullDir tracks which direction the current touch pull is heading:
+  // 'down' = pulling content down → go to prev page (spring > 0)
+  // 'up'   = pulling content up   → go to next page (spring < 0)
+  const pullDir = useRef<'down' | 'up' | null>(null);
 
   // dragY is the "raw" target; springY follows it with spring physics.
   // Setting dragY → springY springs towards it (creating the jelly feel).
@@ -89,7 +92,7 @@ export default function App() {
   const springY = useSpring(dragY, { stiffness: 440, damping: 38, mass: 0.75 });
 
   // Indicator opacity derived from the spring value
-  const topOpacity    = useTransform(springY, [0, PULL_LIMIT * 0.25, PULL_LIMIT], [0, 0.35, 1]);
+  const topOpacity = useTransform(springY, [0, PULL_LIMIT * 0.25, PULL_LIMIT], [0, 0.35, 1]);
   const bottomOpacity = useTransform(springY, [-PULL_LIMIT, -PULL_LIMIT * 0.25, 0], [1, 0.35, 0]);
 
   // ── Responsive layout ────────────────────────────────────────────────────
@@ -107,18 +110,16 @@ export default function App() {
 
   // ── Page navigation ──────────────────────────────────────────────────────
   const navigatePage = useCallback((direction: 'prev' | 'next'): boolean => {
-    if (isTransitioning.current) return false;
+    if (_isTransitioning) return false;
 
-    // Welcome page (activeTab === null) lives at virtual index −1.
-    // Only "next" makes sense from here — navigates to the first room.
     if (activeTab === null) {
       if (direction !== 'next') return false;
-      isTransitioning.current = true;
+      _isTransitioning = true;
       dragY.set(0);
       flushSync(() => setNavDir('up'));
       setActiveTab(PAGE_ORDER[0]);
-      setTimeout(() => { if (scrollRef.current) scrollRef.current.scrollTop = 0; }, 60);
-      setTimeout(() => { isTransitioning.current = false; }, 700);
+      setTimeout(() => { if (scrollElRef.current) scrollElRef.current.scrollTop = 0; }, 60);
+      setTimeout(() => { _isTransitioning = false; }, 700);
       return true;
     }
 
@@ -127,13 +128,12 @@ export default function App() {
     const newIdx = direction === 'prev' ? idx - 1 : idx + 1;
     if (newIdx < 0 || newIdx >= PAGE_ORDER.length) return false;
 
-    isTransitioning.current = true;
+    _isTransitioning = true;
     dragY.set(0);
     flushSync(() => setNavDir(direction === 'prev' ? 'down' : 'up'));
     setActiveTab(PAGE_ORDER[newIdx]);
-    // Scroll new page to top after transition starts
-    setTimeout(() => { if (scrollRef.current) scrollRef.current.scrollTop = 0; }, 60);
-    setTimeout(() => { isTransitioning.current = false; }, 700);
+    setTimeout(() => { if (scrollElRef.current) scrollElRef.current.scrollTop = 0; }, 60);
+    setTimeout(() => { _isTransitioning = false; }, 700);
     return true;
   }, [activeTab, dragY]);
 
@@ -151,32 +151,46 @@ export default function App() {
     }
     setActiveTab(tabId);
     if (isMobile) setIsSidebarOpen(false);
-    setTimeout(() => { if (scrollRef.current) scrollRef.current.scrollTop = 0; }, 60);
+    setTimeout(() => { if (scrollElRef.current) scrollElRef.current.scrollTop = 0; }, 60);
   }, [activeTab, isMobile]);
 
   // ── Touch handlers for elastic overscroll ────────────────────────────────
   const onTouchStart = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
     touchStartY.current = e.touches[0].clientY;
     isPulling.current = false;
+    pullDir.current = null;
   }, []);
 
   const onTouchMove = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
-    const el = scrollRef.current;
-    if (!el || isTransitioning.current) return;
+    const el = scrollElRef.current;
+    if (!el || _isTransitioning) return;
 
     const dy = e.touches[0].clientY - touchStartY.current;
-    const atTop    = el.scrollTop <= 1;
+    const atTop = el.scrollTop <= 1;
     const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
     const idx = PAGE_ORDER.indexOf(activeTab as PageId);
 
-    if (dy > 6 && atTop && idx > 0) {
-      isPulling.current = true;
-      dragY.set(rubberBand(dy - 6, PULL_LIMIT));
-    } else if (dy < -6 && atBottom && idx < PAGE_ORDER.length - 1) {
-      isPulling.current = true;
-      dragY.set(rubberBand(dy + 6, PULL_LIMIT));
-    } else if (!isPulling.current) {
-      if (dragY.get() !== 0) dragY.set(0);
+    // ── Phase 1: decide whether to enter a pull gesture ──────────────────
+    if (!isPulling.current) {
+      if (dy > 6 && atTop && idx > 0) {
+        isPulling.current = true;
+        pullDir.current = 'down';
+      } else if (dy < -6 && atBottom && idx < PAGE_ORDER.length - 1) {
+        isPulling.current = true;
+        pullDir.current = 'up';
+      }
+    }
+
+    // ── Phase 2: while pulling, ALWAYS track dy so reversal deflates spring
+    // This prevents the bug where swipe-back-then-release still triggers nav.
+    if (isPulling.current) {
+      if (pullDir.current === 'down') {
+        // Positive dy = pulling toward prev. Reversed past origin → snap to 0.
+        dragY.set(dy > 0 ? rubberBand(dy, PULL_LIMIT) : 0);
+      } else if (pullDir.current === 'up') {
+        // Negative dy = pulling toward next. Reversed past origin → snap to 0.
+        dragY.set(dy < 0 ? rubberBand(dy, PULL_LIMIT) : 0);
+      }
     }
   }, [activeTab, dragY]);
 
@@ -191,49 +205,91 @@ export default function App() {
       dragY.set(0);
     }
     isPulling.current = false;
+    pullDir.current = null;
   }, [dragY, navigatePage]);
 
-  // ── Wheel handler for desktop overscroll ─────────────────────────────────
-  const onWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
-    const el = scrollRef.current;
-    if (!el || isTransitioning.current) return;
+  // ── Desktop wheel handler ──────────────────────────────────────────────
+  const wheelStateRef = useRef({ accum: 0, timer: null as ReturnType<typeof setTimeout> | null });
+  const navigatePageRef = useRef(navigatePage);
+  navigatePageRef.current = navigatePage;
+  const activeTabRef = useRef(activeTab);
+  activeTabRef.current = activeTab;
+  const dragYRef = useRef(dragY);
+  dragYRef.current = dragY;
 
-    const atTop    = el.scrollTop <= 1;
-    const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
-    const idx = PAGE_ORDER.indexOf(activeTab as PageId);
-    const hasPrev = idx > 0;
-    const hasNext = idx < PAGE_ORDER.length - 1;
+  useEffect(() => {
+    const ws = wheelStateRef.current;
 
-    if ((e.deltaY < 0 && atTop && hasPrev) || (e.deltaY > 0 && atBottom && hasNext)) {
-      wheelAccum.current += e.deltaY;
-      if (wheelTimer.current) clearTimeout(wheelTimer.current);
-      wheelTimer.current = setTimeout(() => {
-        wheelAccum.current = 0;
-        dragY.set(0);
-      }, 500);
-      if (Math.abs(wheelAccum.current) >= WHEEL_ACCUM_THRESHOLD) {
-        if (navigatePage(wheelAccum.current < 0 ? 'prev' : 'next')) {
-          wheelAccum.current = 0;
-          if (wheelTimer.current) clearTimeout(wheelTimer.current);
+    const handler = (e: WheelEvent) => {
+      const el = scrollElRef.current;
+      if (!el || _isTransitioning) return;
+
+      const atTop = el.scrollTop <= 1;
+      const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
+      const idx = PAGE_ORDER.indexOf(activeTabRef.current as PageId);
+      const hasPrev = idx > 0;
+      const hasNext = idx < PAGE_ORDER.length - 1;
+
+      const startingTopPull = atTop && hasPrev && e.deltaY < 0;
+      const startingBottomPull = atBottom && hasNext && e.deltaY > 0;
+      const pullInProgress = ws.accum !== 0;
+
+      if (!startingTopPull && !startingBottomPull && !pullInProgress) return;
+
+      const prevAccum = ws.accum;
+      ws.accum += e.deltaY;
+
+      if ((prevAccum < 0 && ws.accum > 0) || (prevAccum > 0 && ws.accum < 0)) {
+        ws.accum = 0;
+        dragYRef.current.set(0);
+        if (ws.timer) clearTimeout(ws.timer);
+        return;
+      }
+
+      const rawDrag = -(ws.accum / WHEEL_ACCUM_THRESHOLD) * PULL_LIMIT * 1.4;
+      dragYRef.current.set(rawDrag);
+
+      if (ws.timer) clearTimeout(ws.timer);
+      ws.timer = setTimeout(() => {
+        ws.accum = 0;
+        dragYRef.current.set(0);
+      }, 380);
+
+      if (Math.abs(ws.accum) >= WHEEL_ACCUM_THRESHOLD) {
+        const direction = ws.accum < 0 ? 'prev' : 'next';
+        if (navigatePageRef.current(direction)) {
+          ws.accum = 0;
+          if (ws.timer) clearTimeout(ws.timer);
         }
       }
-    }
-  }, [activeTab, dragY, navigatePage]);
+    };
+
+    document.addEventListener('wheel', handler, { passive: true });
+    return () => {
+      document.removeEventListener('wheel', handler);
+      if (ws.timer) clearTimeout(ws.timer);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const scrollRef = useCallback((el: HTMLDivElement | null) => {
+    scrollElRef.current = el;
+  }, []);
 
   // ── Derived values ───────────────────────────────────────────────────────
   const currentIdx = activeTab ? PAGE_ORDER.indexOf(activeTab as PageId) : -1;
-  const prevPage   = currentIdx > 0 ? PAGE_ORDER[currentIdx - 1] : null;
-  const nextPage   = currentIdx < PAGE_ORDER.length - 1 ? PAGE_ORDER[currentIdx + 1] : null;
+  const prevPage = currentIdx > 0 ? PAGE_ORDER[currentIdx - 1] : null;
+  const nextPage = currentIdx < PAGE_ORDER.length - 1 ? PAGE_ORDER[currentIdx + 1] : null;
 
   // Page transition variants
   const variants = {
-    initial: navDir === 'up'   ? { opacity: 0, y: 28, x: 0 }
-            : navDir === 'down' ? { opacity: 0, y: -28, x: 0 }
-            :                     { opacity: 0, y: 0, x: 16 },
+    initial: navDir === 'up' ? { opacity: 0, y: 28, x: 0 }
+      : navDir === 'down' ? { opacity: 0, y: -28, x: 0 }
+        : { opacity: 0, y: 0, x: 16 },
     animate: { opacity: 1, y: 0, x: 0 },
-    exit:    navDir === 'up'   ? { opacity: 0, y: -28, x: 0 }
-            : navDir === 'down' ? { opacity: 0, y: 28, x: 0 }
-            :                     { opacity: 0, y: 0, x: -16 },
+    exit: navDir === 'up' ? { opacity: 0, y: -28, x: 0 }
+      : navDir === 'down' ? { opacity: 0, y: 28, x: 0 }
+        : { opacity: 0, y: 0, x: -16 },
   };
 
   return (
@@ -315,7 +371,6 @@ export default function App() {
             onTouchStart={onTouchStart}
             onTouchMove={onTouchMove}
             onTouchEnd={onTouchEnd}
-            onWheel={onWheel}
           >
             <AnimatePresence mode="wait">
               {activeTab === null ? (
@@ -351,11 +406,10 @@ export default function App() {
                   type="button"
                   onClick={() => handleTabClick(pageId)}
                   aria-label={meta.label}
-                  className={`rounded-full transition-all duration-300 cursor-pointer ${
-                    isActive
-                      ? `w-[5px] h-3.5 ${meta.dotColor}`
-                      : 'w-[5px] h-[5px] bg-gray-300/60 hover:bg-pink-300'
-                  }`}
+                  className={`rounded-full transition-all duration-300 cursor-pointer ${isActive
+                    ? `w-[5px] h-3.5 ${meta.dotColor}`
+                    : 'w-[5px] h-[5px] bg-gray-300/60 hover:bg-pink-300'
+                    }`}
                 />
               );
             })}
