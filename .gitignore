@@ -43,6 +43,8 @@ dist/
 # Playwright
 test-results/
 playwright-report/
+e2e/screenshots/
+e2e/rp-live-report.json
 
 # Frontend build output — never commit; run `cd frontend && npm run build` to regenerate
 static/assets/
