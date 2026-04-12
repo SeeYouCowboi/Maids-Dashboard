@@ -18,7 +18,7 @@ export function createLore(body: LoreForm): Promise<LoreDetail> {
 
 export function updateLore(id: string, body: LoreForm): Promise<LoreDetail> {
   return apiFetch<LoreDetail>(`/v1/lore/${id}`, {
-    method: 'PUT',
+    method: 'PATCH',
     body: JSON.stringify(body),
   })
 }

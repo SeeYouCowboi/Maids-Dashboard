@@ -18,7 +18,7 @@ export function createPersona(body: PersonaForm): Promise<PersonaDetail> {
 
 export function updatePersona(id: string, body: PersonaForm): Promise<PersonaDetail> {
   return apiFetch<PersonaDetail>(`/v1/personas/${id}`, {
-    method: 'PUT',
+    method: 'PATCH',
     body: JSON.stringify(body),
   })
 }
