@@ -5,9 +5,28 @@ import type {
   SessionCloseResponse,
   SessionRecoverRequest,
   SessionRecoverResponse,
-  TurnStreamRequest,
 } from '../contracts'
 import { apiFetch } from './client'
+
+export type TranscriptEntry = {
+  role: string
+  content: string
+  timestamp: number
+  metadata?: Record<string, unknown> | undefined
+}
+
+export type TranscriptResponse = {
+  entries: readonly TranscriptEntry[]
+}
+
+export type MemorySnapshotBlock = {
+  label: string
+  content: string
+}
+
+export type MemorySnapshotResponse = {
+  blocks: readonly MemorySnapshotBlock[]
+}
 
 export function listSessions(): Promise<SessionListResponse> {
   return apiFetch<SessionListResponse>('/v1/sessions')
@@ -34,12 +53,10 @@ export function recoverSession(
   })
 }
 
-export function getSessionTranscript(sessionId: string): Promise<unknown> {
-  return apiFetch(`/v1/sessions/${sessionId}/transcript`)
+export function getSessionTranscript(sessionId: string): Promise<TranscriptResponse> {
+  return apiFetch<TranscriptResponse>(`/v1/sessions/${sessionId}/transcript`)
 }
 
-export function getSessionMemory(sessionId: string): Promise<unknown> {
-  return apiFetch(`/v1/sessions/${sessionId}/memory`)
+export function getSessionMemory(sessionId: string): Promise<MemorySnapshotResponse> {
+  return apiFetch<MemorySnapshotResponse>(`/v1/sessions/${sessionId}/memory`)
 }
-
-export type { TurnStreamRequest }

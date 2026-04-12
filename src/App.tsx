@@ -1,4 +1,4 @@
-import { Suspense, useState, useLayoutEffect, useCallback, useMemo } from 'react'
+import { Suspense, useState, useLayoutEffect, useCallback, useMemo, lazy } from 'react'
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { Menu } from 'lucide-react'
@@ -12,6 +12,8 @@ import type { OfflineContextValue } from './hooks/OfflineContext'
 import { useHealth } from './hooks/useHealth'
 
 const MOBILE_BREAKPOINT = 1024
+
+const GrandHallSessionPage = lazy(() => import('./pages/GrandHallSessionPage'))
 
 export default function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
@@ -37,7 +39,9 @@ export default function App() {
     return () => mq.removeEventListener('change', handler)
   }, [])
 
-  const activeRoomId = ROOMS.find((r) => r.path === location.pathname)?.id ?? null
+  const activeRoomId =
+    ROOMS.find((r) => r.path === location.pathname)?.id ??
+    (location.pathname.startsWith('/grand-hall') ? 'grand-hall' : null)
 
   const handleTabClick = useCallback(
     (roomId: string) => {
@@ -104,6 +108,7 @@ export default function App() {
                       {ROOMS.map((room) => (
                         <Route key={room.id} path={room.path} element={<room.component />} />
                       ))}
+                      <Route path="/grand-hall/sessions/:id" element={<GrandHallSessionPage />} />
                     </Routes>
                   </motion.div>
                 </AnimatePresence>
