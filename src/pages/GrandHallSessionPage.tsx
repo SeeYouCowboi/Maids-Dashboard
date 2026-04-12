@@ -20,6 +20,7 @@ import type { TranscriptEntry, MemorySnapshotBlock } from '../api/sessions'
 import type { SessionListItem, SessionStatus } from '../contracts'
 import { queryKeys } from '../query/keys'
 import { ApiError } from '../api/client'
+import { useOffline } from '../hooks/OfflineContext'
 
 type DetailTab = 'transcript' | 'memory'
 
@@ -40,6 +41,7 @@ function formatTs(unix: number): string {
 }
 
 export default function GrandHallSessionPage() {
+  const { isOffline } = useOffline()
   const { id: sessionId } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const qc = useQueryClient()
@@ -143,7 +145,7 @@ export default function GrandHallSessionPage() {
                 <button
                   type="button"
                   onClick={() => closeMutation.mutate(session.session_id)}
-                  disabled={closeMutation.isPending}
+                  disabled={isOffline || closeMutation.isPending}
                   className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-red-600 bg-red-50/80 rounded-xl border border-red-100 hover:bg-red-100 disabled:opacity-50 transition-colors"
                 >
                   <XCircle className="w-3.5 h-3.5" />
@@ -154,7 +156,7 @@ export default function GrandHallSessionPage() {
                 <button
                   type="button"
                   onClick={() => recoverMutation.mutate(session.session_id)}
-                  disabled={recoverMutation.isPending}
+                  disabled={isOffline || recoverMutation.isPending}
                   className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-amber-600 bg-amber-50/80 rounded-xl border border-amber-100 hover:bg-amber-100 disabled:opacity-50 transition-colors"
                 >
                   <AlertTriangle className="w-3.5 h-3.5" />
@@ -330,7 +332,7 @@ export default function GrandHallSessionPage() {
 
       {session?.status === 'open' && (
         <GlassCard>
-          <ChatComposer sessionId={sessionId} />
+          <ChatComposer sessionId={sessionId} disabled={isOffline} />
         </GlassCard>
       )}
 

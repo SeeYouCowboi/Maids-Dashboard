@@ -13,6 +13,7 @@ import { listAgents } from '../api/agents'
 import type { SessionStatus, AgentItem } from '../contracts'
 import { queryKeys } from '../query/keys'
 import { ApiError } from '../api/client'
+import { useOffline } from '../hooks/OfflineContext'
 
 type StatusFilter = SessionStatus | 'all'
 
@@ -24,6 +25,7 @@ const STATUS_OPTIONS: readonly { value: StatusFilter; label: string }[] = [
 ] as const
 
 export default function GrandHallPage() {
+  const { isOffline } = useOffline()
   const qc = useQueryClient()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
@@ -110,9 +112,21 @@ export default function GrandHallPage() {
     createMutation.mutate(selectedAgentId)
   }, [selectedAgentId, createMutation])
 
-  const handleClose = useCallback((id: string) => closeMutation.mutate(id), [closeMutation])
+  const handleClose = useCallback(
+    (id: string) => {
+      if (isOffline) return
+      closeMutation.mutate(id)
+    },
+    [isOffline, closeMutation],
+  )
 
-  const handleRecover = useCallback((id: string) => recoverMutation.mutate(id), [recoverMutation])
+  const handleRecover = useCallback(
+    (id: string) => {
+      if (isOffline) return
+      recoverMutation.mutate(id)
+    },
+    [isOffline, recoverMutation],
+  )
 
   return (
     <div className="space-y-6">
@@ -120,7 +134,8 @@ export default function GrandHallPage() {
         <button
           type="button"
           onClick={() => setShowCreateForm((prev) => !prev)}
-          className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-pink-400 to-pink-500 rounded-2xl shadow-sm hover:shadow-md hover:from-pink-500 hover:to-pink-600 transition-all duration-200"
+          disabled={isOffline}
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-pink-400 to-pink-500 rounded-2xl shadow-sm hover:shadow-md hover:from-pink-500 hover:to-pink-600 transition-all duration-200${isOffline ? ' opacity-50 cursor-not-allowed' : ''}`}
         >
           <Plus className="w-4 h-4" />
           New Session
@@ -195,7 +210,7 @@ export default function GrandHallPage() {
                   <button
                     type="button"
                     onClick={handleCreate}
-                    disabled={selectedAgentId.length === 0 || createMutation.isPending}
+                    disabled={isOffline || selectedAgentId.length === 0 || createMutation.isPending}
                     className="px-5 py-2 text-sm font-bold text-white bg-gradient-to-r from-pink-400 to-pink-500 rounded-xl shadow-sm hover:shadow-md disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                   >
                     {createMutation.isPending ? 'Creating…' : 'Create'}
