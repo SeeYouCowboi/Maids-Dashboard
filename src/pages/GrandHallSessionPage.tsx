@@ -18,6 +18,7 @@ import {
 } from '../api/sessions'
 import type { TranscriptEntry, MemoryView } from '../api/sessions'
 import type { SessionListItem, SessionStatus } from '../contracts'
+import { listAgents } from '../api/agents'
 import { queryKeys } from '../query/keys'
 import { ApiError } from '../api/client'
 import { useOffline } from '../hooks/OfflineContext'
@@ -53,9 +54,20 @@ export default function GrandHallSessionPage() {
     queryFn: listSessions,
   })
 
+  const agentsQuery = useQuery({
+    queryKey: queryKeys.agents.list(),
+    queryFn: listAgents,
+  })
+
   const session: SessionListItem | undefined = sessionsQuery.data?.items.find(
     (s) => s.session_id === sessionId,
   )
+
+  const agentDisplayName: string = (() => {
+    if (!session) return 'Agent'
+    const found = agentsQuery.data?.agents.find((a) => a.id === session.agent_id)
+    return found?.display_name ?? session.agent_id
+  })()
 
   const transcriptQuery = useQuery({
     queryKey: queryKeys.sessions.transcript(sessionId ?? ''),
@@ -239,33 +251,37 @@ export default function GrandHallSessionPage() {
 
           {transcriptQuery.isSuccess && (
             <div className="space-y-3 max-h-96 overflow-y-auto">
-              {(transcriptQuery.data.entries as readonly TranscriptEntry[]).length === 0 ? (
+              {(transcriptQuery.data.entries as readonly TranscriptEntry[]).filter(
+                (e) => e.record_type === 'message',
+              ).length === 0 ? (
                 <EmptyState
                   icon={<MessageSquare className="w-6 h-6" />}
                   message="No transcript entries yet."
                 />
               ) : (
-                (transcriptQuery.data.entries as readonly TranscriptEntry[]).map((entry, i) => (
-                  <motion.div
-                    key={`${String(entry.timestamp)}-${String(i)}`}
-                    initial={{ opacity: 0, x: entry.actor === 'user' ? 12 : -12 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.03 }}
-                    className={`rounded-xl p-3 text-sm ${
-                      entry.actor === 'user'
-                        ? 'bg-pink-50/60 border border-pink-100 ml-8'
-                        : 'bg-white/50 border border-white/70 mr-8'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400">
-                        {entry.actor}
-                      </span>
-                      <span className="text-[10px] text-gray-400">{formatTs(entry.timestamp)}</span>
-                    </div>
-                    <p className="text-gray-700 whitespace-pre-wrap">{entry.text ?? entry.record_type}</p>
-                  </motion.div>
-                ))
+                (transcriptQuery.data.entries as readonly TranscriptEntry[])
+                  .filter((e) => e.record_type === 'message')
+                  .map((entry, i) => (
+                    <motion.div
+                      key={`${String(entry.timestamp)}-${String(i)}`}
+                      initial={{ opacity: 0, x: entry.actor === 'user' ? 12 : -12 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.03 }}
+                      className={`rounded-xl p-3 ${
+                        entry.actor === 'user'
+                          ? 'bg-pink-50/60 border border-pink-100 ml-8'
+                          : 'bg-white/50 border border-white/70 mr-8'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[10px] text-gray-400">
+                          {entry.actor === 'user' ? 'You' : agentDisplayName}
+                        </span>
+                        <span className="text-[10px] text-gray-400">{formatTs(entry.timestamp)}</span>
+                      </div>
+                      <p className="text-sm text-gray-700 whitespace-pre-wrap">{entry.text}</p>
+                    </motion.div>
+                  ))
               )}
             </div>
           )}
