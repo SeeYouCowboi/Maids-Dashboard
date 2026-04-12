@@ -1,222 +1,162 @@
-# Maids Dashboard - Operator Runbook
+# Maids Dashboard — Operator Runbook
 
 ## Overview
 
-Maids Dashboard is a local-only unified control plane for OpenClaw work and roleplay. It provides a web UI for monitoring agent sessions, dispatching RP turns, managing characters and lorebooks, viewing system metrics, and controlling cron schedules. It binds exclusively to `127.0.0.1` and is never meant to be exposed to the network.
+Maids Dashboard v2.0.0 is a Bun/React/Vite SPA that connects directly to the MaidsClaw gateway. There is no Python backend — only static files served by a web server.
 
 ---
 
-## Required Environment Variables
+## Prerequisites
 
-### `OPENCLAW_ROOT`
-
-Path to the openclaw root directory.
-
-- Default: `~/.openclaw` (resolved at startup)
-- Example: `set OPENCLAW_ROOT=C:\Users\TeaCat\.openclaw`
-
-### `OPENCLAW_GATEWAY_TOKEN`
-
-Bearer token for authenticating with the OpenClaw gateway. This is used server-side only. The browser never sees it.
-
-- **NEVER log or expose this value.**
-- Found in `openclaw.json` under `gateway.auth.token`
-- Example: `set OPENCLAW_GATEWAY_TOKEN=your_token_here`
-
-### `MAIDS_DASHBOARD_CONFIRM_SECRET`
-
-Required for ALL write operations (POST/PATCH/DELETE). If this is not set, every mutating request returns 403.
-
-- The frontend stores this in `sessionStorage` only (evicted when the tab closes)
-- Example: `set MAIDS_DASHBOARD_CONFIRM_SECRET=my-secret-value`
+| Requirement       | Notes                                                          |
+| ----------------- | -------------------------------------------------------------- |
+| Bun 1.x           | [bun.sh](https://bun.sh/)                                      |
+| MaidsClaw gateway | Running at `VITE_API_BASE` (default: `http://localhost:18790`) |
+| MaidsClaw repo    | Checked out as sibling `../MaidsClaw`                          |
 
 ---
 
-## Optional Environment Variables
+## Environment Variables
 
-### `MAIDS_DASHBOARD_MAX_SSE_CLIENTS`
+| Variable        | Default                  | Description                |
+| --------------- | ------------------------ | -------------------------- |
+| `VITE_API_BASE` | `http://localhost:18790` | MaidsClaw gateway base URL |
 
-Maximum number of concurrent SSE connections. New connections beyond this cap receive 503.
-
-- Default: `10`
-- Example: `set MAIDS_DASHBOARD_MAX_SSE_CLIENTS=5`
-
-### `MAIDS_DASHBOARD_RP_TRANSCRIPT_WINDOW`
-
-Maximum number of messages included per RP turn context window. Values below 5 are clamped to 5.
-
-- Default: `30`
-- Example: `set MAIDS_DASHBOARD_RP_TRANSCRIPT_WINDOW=50`
-
-### `MAIDS_DASHBOARD_RP_ENGINE_AGENT_ID`
-
-Override which agent handles RP gateway calls. By default the dashboard auto-detects the first agent marked `default: true` in `openclaw.json`.
-
-- Default: auto-detected from `openclaw.json`
-- Example: `set MAIDS_DASHBOARD_RP_ENGINE_AGENT_ID=maidenteacat`
+No other environment variables are required at runtime. Build-time variables (`__APP_VERSION__`, `__MAIDSCLAW_SHA__`) are injected by Vite during `bun run build`.
 
 ---
 
-## Starting the Dashboard
-
-**Step 1: Ensure the OpenClaw gateway is running.**
-
-The dashboard proxies several calls through the gateway. Nothing works correctly if the gateway is down.
-
-**Step 2: Set required environment variables.**
-
-```powershell
-set OPENCLAW_ROOT=C:\Users\TeaCat\.openclaw
-set OPENCLAW_GATEWAY_TOKEN=your_token_here
-set MAIDS_DASHBOARD_CONFIRM_SECRET=your_secret_here
-```
-
-**Step 3: Start the backend.**
+## Local Development
 
 ```bash
-cd workspace/tools/maids-dashboard
-python dashboard_backend.py
+# Start MaidsClaw first
+cd ../MaidsClaw && bun run start
+
+# In a separate terminal
+cd ../Maids-Dashboard
+bun install
+bun run dev          # Dev server at http://localhost:5173
 ```
 
-The server binds to `127.0.0.1:18889`.
-
-**Step 4: Open the dashboard in a browser.**
-
-```
-http://127.0.0.1:18889/
-```
+Dev server HMR is active. The `@maidsclaw/contracts` alias resolves to `../MaidsClaw/src/contracts/cockpit/` — MaidsClaw must be present as a sibling.
 
 ---
 
-## Health Checks
-
-### Dashboard health
+## Building for Production
 
 ```bash
-# curl
-curl http://127.0.0.1:18889/api/v1/health
-
-# PowerShell
-Invoke-RestMethod http://127.0.0.1:18889/api/v1/health
+bun run build        # -> dist/
 ```
 
-Returns status for the database, event bus, and SSE subsystem.
+`dist/` is the deployable artifact. It contains `index.html` plus versioned JS/CSS chunks.
 
-### Gateway connectivity
+---
+
+## Authentication
+
+- Login: enter a MaidsClaw bearer token in the login screen
+- Token stored in `sessionStorage` (`mc:token`) — evicted when tab closes
+- Offline: read-only cached data remains visible; write affordances are disabled
+- `401` from gateway: token is cleared, login screen shown
+
+---
+
+## Offline Mode
+
+When the gateway at `VITE_API_BASE/healthz` is unreachable:
+
+- An offline banner appears at the top of the screen
+- Cached query data remains visible
+- All write actions (create/edit/delete) are disabled
+- Navigation continues to work
+
+---
+
+## Static Deployment
+
+1. Run `bun run build` — produces `dist/`
+2. Copy `dist/` to web server root
+3. Configure web server to serve `index.html` for all 404s (SPA fallback)
+4. Set `Cache-Control: no-cache` on `index.html`; allow caching on JS/CSS chunks
+
+See [deploy/DEPLOY_GUIDE.md](./deploy/DEPLOY_GUIDE.md) for Nginx configuration.
+
+---
+
+## MaidsClaw Version Pin
+
+`.maidsclaw-version` pins the MaidsClaw commit SHA this build was tested against.
 
 ```bash
-# curl
-curl http://127.0.0.1:18889/api/v1/gateway/health
-
-# PowerShell
-Invoke-RestMethod http://127.0.0.1:18889/api/v1/gateway/health
+bun run bump:maidsclaw    # Updates pin to current ../MaidsClaw HEAD
 ```
 
-Proxies a health ping to the OpenClaw gateway and reports back.
+CI automatically checks out MaidsClaw at this SHA before building.
 
 ---
 
-## Feature Reference
+## Rollout Checklist
 
-### Grand Hall
+Use this checklist for every production cutover:
 
-The main overview screen. Shows all agents, their current sessions, recent activity, and connection status at a glance.
+### Pre-Deploy Gates
 
-### Observatory
+- [ ] `.maidsclaw-version` is up to date and the SHA is reachable in the MaidsClaw repo
+- [ ] MaidsClaw gateway has ~37 v1 routes available (check `/v1/runtime` for agent list)
+- [ ] Welcome room shows correct health status and MaidsClaw SHA
+- [ ] Grand Hall: create session, send turn, streamed response visible
+- [ ] Library: create persona, edit, delete (typed confirmation) all succeed
+- [ ] `bun run typecheck && bun run test && bun run build` all pass from repo root
+- [ ] `dist/index.html` exists and is < 30 days old
 
-Metrics, event log, and activity timeline. Includes plot branch inspector for reviewing RP story structure.
+### CORS / Network Gates (Release Blockers)
 
-### War Room
+- [ ] Preview deployment `OPTIONS` preflight from preview origin returns `204` with correct `Access-Control-Allow-Origin`
+- [ ] `GET /v1/personas` from preview origin returns `200` (not CORS error)
+- [ ] Deep-link to `/grand-hall`, `/library`, `/study` returns `200 text/html` (SPA fallback active)
+- [ ] Token sent only over HTTPS or localhost — verify no `401`/CORS loop on prod
 
-Surfaces dispatch failures and agent conflicts. Use this when something went wrong and you need to see what failed and why.
+### Post-Deploy Smoke
 
-### Garden
+- [ ] Login with valid MaidsClaw token succeeds
+- [ ] Welcome room shows gateway as online
+- [ ] Grand Hall loads session list
+- [ ] Library loads persona list
+- [ ] Bad token returns to login screen (no infinite redirect)
+- [ ] Gateway offline shows offline banner, navigation unbroken
 
-Cron job toggles, heartbeat configuration, and general settings. Enable or disable scheduled tasks without touching config files.
+### Old Stack Removal Confirmation
 
-### Library
-
-RP world management: characters, lorebook entries, and plot graph. Supports Character Card V2 import/export, keyword/regex lorebook triggers, and branching plot nodes.
-
-### Kitchen
-
-RP commit editor. Review and edit AI-generated RP turns before they're committed to canon. Useful for quality control or light revision.
-
-### Ballroom
-
-Multi-agent RP group chat. Create rooms, add participants, send messages. The dashboard fans out each message to all participant agents via the gateway and broadcasts responses over SSE.
-
-### Stats
-
-Usage analytics: model call histogram, cron job reliability, delivery retry distribution, and RP activity summary.
-
----
-
-## Security Notes
-
-**Gateway token stays server-side.** `OPENCLAW_GATEWAY_TOKEN` is read from the environment at startup and used only in backend-to-gateway calls. The browser never receives it, and it's never included in API responses.
-
-**All writes require a confirm secret.** Every POST/PATCH/DELETE endpoint checks the `X-Confirm-Secret` header against `MAIDS_DASHBOARD_CONFIRM_SECRET`. Missing or wrong secret returns 403.
-
-**Session storage only.** The frontend stores the confirm secret in `sessionStorage`. It's cleared when the tab closes and is never written to `localStorage` or cookies.
-
-**CSRF defense via Origin validation.** Mutating endpoints validate the `Origin` header. Only `http://127.0.0.1:18889` and `http://localhost:18889` are allowed. Everything else is rejected with 403. Same-origin requests that omit `Origin` are permitted.
-
-**XSS defense via textContent.** All API-sourced text is rendered using `textContent` in the frontend, never `innerHTML`. The API doesn't strip HTML, so the rendering contract is the safety boundary.
-
-**Loopback only.** The backend rejects non-loopback bind addresses. If something tries to start it on a public interface, it overrides to `127.0.0.1` and logs a warning.
-
-**Sensitive data is redacted.** API responses pass through `redact_sensitive_data()` before being sent. Keys containing `token`, `secret`, `password`, `api_key`, `apikey`, `authorization`, `auth`, `credential`, `access_token`, `refresh_token`, `bearer`, or `jwt` are replaced with `[REDACTED]`. Redaction applies recursively to nested objects and lists.
-
-**MEMORY.md is never served.** Memory files, `auth.json`, and `auth-profiles.json` are explicitly excluded from all observability API endpoints.
-
----
-
-## Running Tests
-
-```bash
-cd workspace/tools/maids-dashboard
-python -m pytest tests/ -v
-```
-
-Expected: 179+ tests pass. Run with `--tb=short` for compact failure output if something breaks.
+- [ ] Python `dashboard_backend.py` is absent from the deployment
+- [ ] No `pyproject.toml`, `api/`, `services/`, `tests/` Python directories present
+- [ ] `frontend/` legacy subtree is absent
+- [ ] `MAIDS_DASHBOARD_CONFIRM_SECRET` is not referenced anywhere in active config
+- [ ] No systemd `maids-dashboard` service is running or enabled
 
 ---
 
 ## Troubleshooting
 
-### Port 18889 already in use
+### Gateway Unreachable
 
-Find what's using it and kill it, or just restart:
+1. Check MaidsClaw is running: `curl http://localhost:18790/healthz`
+2. Verify `VITE_API_BASE` in `.env.development` or `.env.production`
+3. Check CORS: is the preview/production origin in MaidsClaw's CORS allowlist?
 
-```powershell
-netstat -ano | findstr 18889
-# note the PID, then:
-taskkill /PID <pid> /F
-```
+### Login Loop
 
-### DB locked errors
+1. Open browser DevTools, go to Application, then sessionStorage
+2. Clear the `mc:token` key manually
+3. Hard-reload the page
+4. Try a fresh bearer token
 
-SQLite locks up when multiple processes open the same database. Make sure only one instance of the backend is running. Check for zombie Python processes:
+### Build Fails
 
-```powershell
-Get-Process python
-```
+1. Ensure `../MaidsClaw` exists as sibling directory
+2. Run `bun run bump:maidsclaw` to confirm pin is valid
+3. Run `bun run typecheck` for type errors before building
 
-### Gateway connection failed
+### SPA 404 on Refresh
 
-1. Confirm the gateway is running (check `openclaw gateway status` or the gateway process)
-2. Verify the token is set: `echo %OPENCLAW_GATEWAY_TOKEN%`
-3. Check gateway logs for auth errors
-
-### Missing MAIDS_DASHBOARD_CONFIRM_SECRET
-
-If write operations return 403 and you're sure the header is being sent, the most likely cause is the env var wasn't set before starting the backend. Restart the backend after setting it.
-
-### SSE connections returning 503
-
-The `MAIDS_DASHBOARD_MAX_SSE_CLIENTS` cap has been hit. Close browser tabs that have the dashboard open but idle, or raise the limit:
-
-```powershell
-set MAIDS_DASHBOARD_MAX_SSE_CLIENTS=20
-```
+- Web server must redirect all 404s to `index.html`
+- See Nginx config in `deploy/DEPLOY_GUIDE.md`

@@ -1,157 +1,160 @@
 # Maids Dashboard
 
-Local control plane for the [OpenClaw](https://github.com/) multi-agent system. Provides a web UI for monitoring agent sessions, reviewing RP output, managing lorebooks and characters, and controlling cron schedules — all over a loopback-only connection.
+Native console for [MaidsClaw](../MaidsClaw) — a Bun/React/Vite SPA that connects directly to the MaidsClaw gateway.
 
-> For day-to-day operational details, see [RUNBOOK.md](./RUNBOOK.md).
+> For operational details, see [RUNBOOK.md](./RUNBOOK.md).
 
 ---
 
 ## Stack
 
-**Backend** — Python 3.10+, FastAPI, uvicorn, SQLite
-**Frontend** — React 19, TypeScript, Tailwind CSS v4, Vite 6, Recharts, motion/react
+**Frontend** — React 19, TypeScript 5, Tailwind CSS v4, Vite 6, Recharts, motion/react
+**Runtime** — Bun, BrowserRouter (SPA), TanStack Query
+**Gateway** — [MaidsClaw](../MaidsClaw) (sibling repo, pinned via `.maidsclaw-version`)
 
 ---
 
 ## Requirements
 
-- Python 3.10+
-- Node.js 18+ (required on first-time setup to build the frontend)
-- OpenClaw gateway running on port 18789
+- [Bun](https://bun.sh/) 1.x
+- [MaidsClaw](../MaidsClaw) checked out as a sibling directory (`../MaidsClaw`)
+- MaidsClaw gateway running on port 18790
+
+---
+
+## Sibling Repo Topology
+
+Both repos must live side-by-side:
+
+```
+workspace/
+  MaidsClaw/        <- gateway server
+  Maids-Dashboard/  <- this repo (SPA)
+```
+
+The Dashboard's `@maidsclaw/contracts` TypeScript path alias resolves to `../MaidsClaw/src/contracts/cockpit/`. If MaidsClaw is not present as a sibling, the build will fail.
 
 ---
 
 ## Environment Variables
 
-### Required
+### Required (production)
 
-| Variable | Description |
-|----------|-------------|
-| `OPENCLAW_ROOT` | Path to the openclaw root directory (default: `~/.openclaw`) |
-| `OPENCLAW_GATEWAY_TOKEN` | Bearer token for the OpenClaw gateway — server-side only, never logged |
-| `MAIDS_DASHBOARD_CONFIRM_SECRET` | Required for all write operations (POST/PATCH/DELETE); stored in `sessionStorage` only |
+| Variable        | Description                                                             |
+| --------------- | ----------------------------------------------------------------------- |
+| `VITE_API_BASE` | URL of the MaidsClaw gateway (default in dev: `http://localhost:18790`) |
 
-### Optional
+### .env files
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `DASHBOARD_BIND_HOST` | `127.0.0.1` | Bind address for uvicorn |
-| `DASHBOARD_PORT` | `18889` | Listen port |
-| `DASHBOARD_DB_PATH` | `~/.openclaw/workspace/maids/state/dashboard.db` | SQLite database path |
-| `MAIDS_DASHBOARD_MAX_SSE_CLIENTS` | `10` | Maximum concurrent SSE connections |
-| `MAIDS_DASHBOARD_RP_TRANSCRIPT_WINDOW` | `30` | Message context window per RP turn (min 5) |
-| `MAIDS_DASHBOARD_RP_ENGINE_AGENT_ID` | auto | Override which agent handles RP gateway calls |
+| File               | Purpose                                                               |
+| ------------------ | --------------------------------------------------------------------- |
+| `.env.development` | Dev defaults — `VITE_API_BASE=http://localhost:18790`                 |
+| `.env.production`  | Production gateway URL — set `VITE_API_BASE` to your deployed gateway |
+| `.env.example`     | Reference template                                                    |
 
 ---
 
 ## Quickstart
 
 ```bash
-# 1. Install Python dependencies
-pip install -e .
+# 1. Ensure MaidsClaw is running
+cd ../MaidsClaw && bun run start
 
-# 2. Build the frontend (required on first clone, or after frontend changes)
-cd frontend
-npm install
-npm run build
-cd ..
+# 2. Install dependencies
+cd ../Maids-Dashboard && bun install
 
-# 3. Set environment variables (PowerShell)
-$env:OPENCLAW_ROOT = "C:\Users\TeaCat\.openclaw"
-$env:OPENCLAW_GATEWAY_TOKEN = "your_token_here"
-$env:MAIDS_DASHBOARD_CONFIRM_SECRET = "your_secret_here"
-
-# 4. Start the backend
-python dashboard_backend.py
+# 3. Start the dev server
+bun run dev
 ```
 
-Open `http://127.0.0.1:18889` in a browser.
+Open `http://localhost:5173` in a browser. Log in with a MaidsClaw bearer token.
 
-> **Note:** The `static/` build output is excluded from git. Every machine must run `npm run build` once after cloning, and again whenever frontend source files change.
+---
+
+## Commands
+
+| Command                  | Description                                           |
+| ------------------------ | ----------------------------------------------------- |
+| `bun run dev`            | Start Vite dev server (HMR, proxies to MaidsClaw)     |
+| `bun run build`          | Typecheck + Vite production build into `dist/`        |
+| `bun run preview`        | Preview `dist/` locally                               |
+| `bun run typecheck`      | Run TypeScript type checking                          |
+| `bun run lint`           | Run ESLint                                            |
+| `bun run test`           | Run Vitest unit tests                                 |
+| `bun run test:watch`     | Run tests in watch mode                               |
+| `bun run bump:maidsclaw` | Update `.maidsclaw-version` to current MaidsClaw HEAD |
 
 ---
 
 ## Rooms
 
-| Room | Purpose |
-|------|---------|
-| **Grand Hall** | Agent overview — sessions, activity, connection status |
-| **Observatory** | Metrics, event log, activity timeline, plot branch inspector |
-| **War Room** | Dispatch failures and agent conflicts |
-| **Garden** | Cron job toggles, heartbeat configuration, settings |
-| **Library** | RP world management — characters, lorebook, plot graph |
-| **Kitchen** | RP commit editor — review and revise turns before they go to canon |
-| **Ballroom** | Multi-agent group RP — create rooms, add participants, broadcast via SSE |
+| Room            | Status | Purpose                                                 |
+| --------------- | ------ | ------------------------------------------------------- |
+| **Welcome**     | v1     | Health status, auth state, quick navigation             |
+| **Grand Hall**  | v1     | Sessions, agents, chat with streamed turns              |
+| **Library**     | v1     | Persona & lore studio (create/edit/delete)              |
+| **Study**       | v1     | Read-only memory browser (core blocks, episodes, etc.)  |
+| **Observatory** | v1     | Aggregated read-only overview (charts, health cards)    |
+| **War Room**    | v1     | Logs, request traces, blackboard state inspector        |
+| **Garden**      | v1     | Jobs, runtime config, providers, agents, local prefs    |
+| **Kitchen**     | v2     | Task submission & scheduled agent tasks                 |
+| **Ballroom**    | v2     | Multi-agent interaction (requires MaidsClaw extensions) |
 
 ---
 
-## Development
+## Authentication
 
-### Backend
+The Dashboard uses bearer token authentication:
 
-```bash
-pip install -e ".[dev]"
-python dashboard_backend.py
-```
+1. Open the app — if no token is in `sessionStorage`, a login screen appears
+2. Enter your MaidsClaw bearer token
+3. Token is stored in `sessionStorage` (`mc:token`) — evicted on tab close
+4. `401` responses automatically clear the token and return to login
 
-### Frontend
-
-```bash
-cd frontend
-npm install
-npm run dev        # dev server with HMR on :5173, proxies /api to :18889
-npm run build      # outputs to ../static/
-```
-
-The Vite dev server proxies `/api/*` to `http://127.0.0.1:18889`, so the backend must be running alongside it.
-
----
-
-## Tests
-
-```bash
-pytest tests/ -v
-# expected: 179+ tests pass
-```
-
-Static analysis:
-
-```bash
-pyright
-```
+Tokens are never sent over non-HTTPS non-localhost origins.
 
 ---
 
 ## Project Structure
 
 ```
-dashboard_backend.py   entry point, wires uvicorn + shared state
-api/                   FastAPI routers (one per domain)
-services/              business logic called by routers
-core/                  shared models, utilities
-ingestion.py           background ingestion engine
-sse_manager.py         server-sent events broadcast
-dashboard_db.py        SQLite schema + queries
-frontend/              React app (Vite)
-static/                pre-built frontend (served by FastAPI / Nginx) — git-ignored, generated by `npm run build`
-tests/                 pytest suite
+src/               React SPA source
+  api/             Typed API clients (one per resource)
+  auth/            AuthProvider, LoginScreen, AuthGuard
+  components/      Shell, sidebar, shared UI primitives
+  contracts/       Re-exports from @maidsclaw/contracts
+  hooks/           useHealth, useOffline, usePrefs
+  lib/             storage.ts, observatory-aggregations.ts
+  pages/           One file per room
+  query/           TanStack Query client and keys
+  schemas/         Local Zod v3 form schemas
+  stream/          POST SSE turn stream client
+dist/              Production build output (git-ignored)
+.maidsclaw-version Pinned MaidsClaw SHA for builds
+scripts/           bump-maidsclaw.sh
+docs/              Architecture and consensus docs
 ```
 
 ---
 
-## Security
+## MaidsClaw Version Pin
 
-The backend is designed for loopback-only use. Key constraints:
+`.maidsclaw-version` contains the Git SHA of the MaidsClaw commit this build was tested against. The CI workflow checks out MaidsClaw at exactly this SHA before building.
 
-- Binds to `127.0.0.1` by default; overrides any non-loopback address with a warning
-- All write endpoints require `X-Confirm-Secret` matching `MAIDS_DASHBOARD_CONFIRM_SECRET`
-- Origin validation on mutating requests: only `127.0.0.1:18889` and `localhost:18889` are accepted
-- Gateway token is used exclusively in backend-to-gateway calls and never included in API responses
-- API responses are passed through `redact_sensitive_data()` before being sent (tokens, secrets, keys → `[REDACTED]`)
-- `MEMORY.md`, `auth.json`, and `auth-profiles.json` are excluded from all observability endpoints
+To update the pin:
+
+```bash
+bun run bump:maidsclaw
+```
 
 ---
 
 ## Deployment
 
-See [DEPLOY_GUIDE.md](./DEPLOY_GUIDE.md) for packaging and production deployment (Ubuntu + Nginx + systemd).
+See [RUNBOOK.md](./RUNBOOK.md) and [deploy/DEPLOY_GUIDE.md](./deploy/DEPLOY_GUIDE.md).
+
+Production builds are static files in `dist/`. The server must:
+
+1. Serve `dist/` as static files
+2. Redirect all 404s to `dist/index.html` (SPA fallback)
+3. Set `Cache-Control: no-cache` on `index.html`
