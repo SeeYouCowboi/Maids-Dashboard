@@ -144,7 +144,7 @@ export function ChatComposer({ sessionId, disabled, onStreamUpdate }: ChatCompos
             placeholder={isInputDisabled ? 'Waiting for reply…' : 'Type a message… (Enter to send)'}
             disabled={isInputDisabled}
             rows={1}
-            className="w-full bg-white/60 backdrop-blur-sm border border-white/80 rounded-2xl px-4 py-3 pr-11 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none focus:border-pink-200 focus:ring-2 focus:ring-pink-100/60 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
+            className="w-full bg-transparent border-none rounded-2xl px-0 py-1 pr-8 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
           />
           <button
             type="button"

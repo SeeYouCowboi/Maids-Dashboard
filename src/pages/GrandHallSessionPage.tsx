@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'motion/react'
 import { ArrowLeft, MessageSquare, Brain, XCircle, AlertTriangle, RefreshCw } from 'lucide-react'
-import { PageHeader } from '../components/ui/PageHeader'
 import { GlassCard } from '../components/ui/GlassCard'
 import { LoadingSpinner } from '../components/ui/LoadingSpinner'
 import { EmptyState } from '../components/ui/EmptyState'
@@ -16,7 +15,7 @@ import {
   closeSession,
   recoverSession,
 } from '../api/sessions'
-import type { TranscriptEntry, MemoryView } from '../api/sessions'
+import type { TranscriptEntry } from '../api/sessions'
 import type { SessionListItem, SessionStatus } from '../contracts'
 import { listAgents } from '../api/agents'
 import { queryKeys } from '../query/keys'
@@ -83,7 +82,6 @@ export default function GrandHallSessionPage() {
     enabled: sessionId != null && activeTab === 'memory',
   })
 
-  // Auto-scroll to bottom when transcript updates or live text changes
   useEffect(() => {
     transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [transcriptQuery.data, liveText, liveActive])
@@ -115,8 +113,6 @@ export default function GrandHallSessionPage() {
     },
   })
 
-  const handleBack = useCallback(() => navigate('/grand-hall'), [navigate])
-
   if (!sessionId) {
     return (
       <div className="h-full flex items-center justify-center">
@@ -137,86 +133,108 @@ export default function GrandHallSessionPage() {
     ?.filter((e) => e.record_type === 'message') ?? []
 
   return (
-    <div className="h-full flex flex-col">
-      {/* Header */}
-      <div className="shrink-0 px-6 pt-6 md:px-8 md:pt-8 pb-4">
-        <PageHeader
-          title="Session Detail"
-          subtitle={session ? `${session.agent_id} • ${session.session_id.slice(0, 12)}…` : sessionId}
+    <div className="h-full flex flex-col gap-0">
+
+      {/* ── Compact top bar ─────────────────────────────────────────── */}
+      <div className="shrink-0 flex items-center gap-2 px-4 py-2.5 border-b border-white/40 bg-white/10 backdrop-blur-sm">
+        {/* Back */}
+        <button
+          type="button"
+          onClick={() => navigate('/grand-hall')}
+          className="p-1.5 rounded-xl text-gray-500 hover:text-pink-600 hover:bg-pink-50/60 transition-all duration-200"
+          aria-label="Back"
         >
+          <ArrowLeft className="w-4 h-4" />
+        </button>
+
+        {/* Avatar */}
+        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-pink-200 to-purple-200 flex items-center justify-center text-xs font-bold text-pink-600 shrink-0">
+          {(session?.agent_id ?? '?').charAt(0).toUpperCase()}
+        </div>
+
+        {/* Name + session id */}
+        <div className="flex-1 min-w-0 flex items-baseline gap-2">
+          <span className="font-semibold text-sm text-gray-800 truncate">{agentDisplayName}</span>
+          {session && (
+            <code className="text-[10px] text-gray-400 hidden sm:block truncate">
+              {session.session_id.slice(0, 14)}…
+            </code>
+          )}
+        </div>
+
+        {/* Status + timestamp */}
+        {session && (
+          <>
+            <StatusBadge status={session.status} variant={STATUS_VARIANT[session.status]} />
+            <span className="text-[10px] text-gray-400 hidden md:block shrink-0">
+              {formatTs(session.created_at)}
+            </span>
+          </>
+        )}
+
+        {/* Refresh transcript */}
+        {activeTab === 'transcript' && (
           <button
             type="button"
-            onClick={handleBack}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-600 bg-white/60 backdrop-blur-sm border border-white/80 rounded-2xl hover:border-pink-200 hover:text-pink-600 transition-all duration-200"
+            onClick={() =>
+              void qc.invalidateQueries({ queryKey: queryKeys.sessions.transcript(sessionId) })
+            }
+            className="p-1.5 rounded-xl text-gray-400 hover:text-blue-500 hover:bg-blue-50/50 transition-all"
+            aria-label="Refresh transcript"
           >
-            <ArrowLeft className="w-4 h-4" />
-            Back
+            <RefreshCw className="w-3.5 h-3.5" />
           </button>
-        </PageHeader>
+        )}
+
+        {/* Session actions */}
+        {session?.status === 'open' && (
+          <button
+            type="button"
+            onClick={() => closeMutation.mutate(session.session_id)}
+            disabled={isOffline || closeMutation.isPending}
+            className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-red-500 hover:bg-red-50/80 rounded-xl border border-transparent hover:border-red-100 disabled:opacity-50 transition-all"
+          >
+            <XCircle className="w-3.5 h-3.5" />
+            {closeMutation.isPending ? 'Closing…' : 'Close'}
+          </button>
+        )}
+        {session?.status === 'recovery_required' && (
+          <button
+            type="button"
+            onClick={() => recoverMutation.mutate(session.session_id)}
+            disabled={isOffline || recoverMutation.isPending}
+            className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-amber-600 hover:bg-amber-50/80 rounded-xl border border-transparent hover:border-amber-100 disabled:opacity-50 transition-all"
+          >
+            <AlertTriangle className="w-3.5 h-3.5" />
+            {recoverMutation.isPending ? 'Recovering…' : 'Recover'}
+          </button>
+        )}
       </div>
 
-      {/* Session info card */}
-      {session && (
-        <div className="shrink-0 px-6 md:px-8 pb-3">
-          <GlassCard color="pink">
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-pink-200 to-purple-200 flex items-center justify-center font-bold text-pink-600 shrink-0">
-                {session.agent_id.charAt(0).toUpperCase()}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-gray-800 text-sm">{agentDisplayName}</p>
-                <code className="text-xs text-blue-600/70 bg-blue-50/60 px-1.5 py-0.5 rounded-md">
-                  {session.session_id.slice(0, 20)}…
-                </code>
-              </div>
-              <StatusBadge status={session.status} variant={STATUS_VARIANT[session.status]} />
-              <span className="text-xs text-gray-400">{formatTs(session.created_at)}</span>
+      {/* Action error */}
+      <AnimatePresence>
+        {actionError != null && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="shrink-0 mx-4 mt-2 bg-red-50/80 border border-red-200 rounded-xl px-3 py-2 text-xs text-red-600 flex items-center gap-2"
+          >
+            {actionError}
+            <button
+              type="button"
+              onClick={() => setActionError(undefined)}
+              className="ml-auto font-semibold hover:text-red-800"
+            >
+              ✕
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-              <div className="flex items-center gap-2">
-                {session.status === 'open' && (
-                  <button
-                    type="button"
-                    onClick={() => closeMutation.mutate(session.session_id)}
-                    disabled={isOffline || closeMutation.isPending}
-                    className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-red-500 bg-red-50/80 rounded-xl border border-red-100 hover:bg-red-100 disabled:opacity-50 transition-colors"
-                  >
-                    <XCircle className="w-3.5 h-3.5" />
-                    {closeMutation.isPending ? 'Closing…' : 'Close'}
-                  </button>
-                )}
-                {session.status === 'recovery_required' && (
-                  <button
-                    type="button"
-                    onClick={() => recoverMutation.mutate(session.session_id)}
-                    disabled={isOffline || recoverMutation.isPending}
-                    className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-amber-600 bg-amber-50/80 rounded-xl border border-amber-100 hover:bg-amber-100 disabled:opacity-50 transition-colors"
-                  >
-                    <AlertTriangle className="w-3.5 h-3.5" />
-                    {recoverMutation.isPending ? 'Recovering…' : 'Recover'}
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <AnimatePresence>
-              {actionError != null && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="mt-3 bg-red-50/80 border border-red-200 rounded-xl px-3 py-2 text-xs text-red-600"
-                >
-                  {actionError}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </GlassCard>
-        </div>
-      )}
-
-      {/* Tab switcher */}
-      <div className="shrink-0 px-6 md:px-8 pb-3">
-        <div className="flex items-center gap-1 bg-white/30 backdrop-blur-sm rounded-2xl p-1 border border-white/60 w-fit">
+      {/* ── Tab switcher ──────────────────────────────────────────────── */}
+      <div className="shrink-0 px-4 pt-2 pb-1">
+        <div className="flex items-center gap-1 bg-white/30 backdrop-blur-sm rounded-xl p-0.5 border border-white/50 w-fit">
           {(
             [
               { key: 'transcript' as const, icon: MessageSquare, label: 'Transcript' },
@@ -227,40 +245,24 @@ export default function GrandHallSessionPage() {
               key={tab.key}
               type="button"
               onClick={() => setActiveTab(tab.key)}
-              className={`flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl transition-all duration-200 ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-[10px] transition-all duration-200 ${
                 activeTab === tab.key
-                  ? 'bg-white/70 text-pink-600 shadow-sm'
+                  ? 'bg-white/80 text-pink-600 shadow-sm'
                   : 'text-gray-500 hover:text-gray-700 hover:bg-white/30'
               }`}
             >
-              <tab.icon className="w-3.5 h-3.5" />
+              <tab.icon className="w-3 h-3" />
               {tab.label}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Scrollable content area */}
-      <div className="flex-1 min-h-0 overflow-y-auto px-6 md:px-8 pb-3">
-        {activeTab === 'transcript' && (
-          <GlassCard color="blue">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xs font-semibold text-blue-500 flex items-center gap-2 tracking-wide uppercase">
-                <MessageSquare className="w-3.5 h-3.5" />
-                Transcript
-              </h3>
-              <button
-                type="button"
-                onClick={() =>
-                  void qc.invalidateQueries({ queryKey: queryKeys.sessions.transcript(sessionId) })
-                }
-                className="p-1.5 rounded-xl text-gray-400 hover:text-blue-500 hover:bg-blue-50/50 transition-all"
-                aria-label="Refresh transcript"
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-              </button>
-            </div>
+      {/* ── Scrollable content ────────────────────────────────────────── */}
+      <div className="flex-1 min-h-0 overflow-y-auto px-4 pt-2 pb-2">
 
+        {activeTab === 'transcript' && (
+          <GlassCard color="blue" className="!p-4">
             {transcriptQuery.isLoading && (
               <div className="py-8">
                 <LoadingSpinner />
@@ -287,20 +289,22 @@ export default function GrandHallSessionPage() {
                     {messageEntries.map((entry, i) => (
                       <motion.div
                         key={`${String(entry.timestamp)}-${String(i)}`}
-                        initial={{ opacity: 0, x: entry.actor === 'user' ? 12 : -12 }}
+                        initial={{ opacity: 0, x: entry.actor === 'user' ? 10 : -10 }}
                         animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: Math.min(i * 0.02, 0.3) }}
+                        transition={{ delay: Math.min(i * 0.02, 0.25) }}
                         className={`rounded-2xl px-4 py-3 ${
                           entry.actor === 'user'
                             ? 'bg-pink-50/70 border border-pink-100/80 ml-10'
                             : 'bg-white/60 border border-white/80 mr-10'
                         }`}
                       >
-                        <div className="flex items-baseline justify-between mb-1.5 gap-2">
+                        <div className="flex items-baseline justify-between mb-1 gap-2">
                           <span className="text-[10px] text-gray-400 shrink-0">
                             {entry.actor === 'user' ? 'You' : agentDisplayName}
                           </span>
-                          <span className="text-[10px] text-gray-300">{formatTs(entry.timestamp)}</span>
+                          <span className="text-[10px] text-gray-300 shrink-0">
+                            {formatTs(entry.timestamp)}
+                          </span>
                         </div>
                         <p
                           className={`text-[15px] leading-[1.7] text-gray-700 whitespace-pre-wrap ${
@@ -312,14 +316,13 @@ export default function GrandHallSessionPage() {
                       </motion.div>
                     ))}
 
-                    {/* Live streaming bubble */}
                     {(liveActive || liveText) && (
                       <motion.div
-                        initial={{ opacity: 0, x: -12 }}
+                        initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
                         className="rounded-2xl px-4 py-3 bg-white/60 border border-white/80 mr-10"
                       >
-                        <div className="mb-1.5">
+                        <div className="mb-1">
                           <span className="text-[10px] text-gray-400">{agentDisplayName}</span>
                         </div>
                         <p className="text-[15px] leading-[1.7] text-gray-700 whitespace-pre-wrap font-serif">
@@ -339,9 +342,9 @@ export default function GrandHallSessionPage() {
         )}
 
         {activeTab === 'memory' && (
-          <GlassCard color="purple">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xs font-semibold text-purple-500 flex items-center gap-2 tracking-wide uppercase">
+          <GlassCard color="purple" className="!p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-xs font-semibold text-purple-500 flex items-center gap-1.5 tracking-wide uppercase">
                 <Brain className="w-3.5 h-3.5" />
                 Memory Snapshot
               </h3>
@@ -357,11 +360,7 @@ export default function GrandHallSessionPage() {
               </button>
             </div>
 
-            {memoryQuery.isLoading && (
-              <div className="py-8">
-                <LoadingSpinner />
-              </div>
-            )}
+            {memoryQuery.isLoading && <div className="py-8"><LoadingSpinner /></div>}
 
             {memoryQuery.isError && (
               <div className="text-xs text-red-500 py-4">
@@ -379,17 +378,17 @@ export default function GrandHallSessionPage() {
                   memoryQuery.data.core_memory_summary.map((item, i) => (
                     <motion.div
                       key={item.label}
-                      initial={{ opacity: 0, y: 8 }}
+                      initial={{ opacity: 0, y: 6 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.05 }}
-                      className="bg-white/50 border border-purple-100/60 rounded-xl p-4"
+                      transition={{ delay: i * 0.04 }}
+                      className="bg-white/50 border border-purple-100/60 rounded-xl p-3"
                     >
-                      <div className="flex items-center justify-between mb-2">
-                        <h4 className="text-xs font-semibold text-purple-500 uppercase tracking-wider">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-purple-500 uppercase tracking-wider">
                           {item.label}
-                        </h4>
+                        </span>
                         <span className="text-[10px] text-gray-400">
-                          {item.chars_current} / {item.char_limit} chars
+                          {item.chars_current} / {item.char_limit}
                         </span>
                       </div>
                     </motion.div>
@@ -397,10 +396,10 @@ export default function GrandHallSessionPage() {
                 )}
                 {memoryQuery.data.recent_cognition && (
                   <motion.div
-                    initial={{ opacity: 0, y: 8 }}
+                    initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: memoryQuery.data.core_memory_summary.length * 0.05 }}
-                    className="bg-purple-50/40 border border-purple-100/60 rounded-xl p-4"
+                    transition={{ delay: memoryQuery.data.core_memory_summary.length * 0.04 }}
+                    className="bg-purple-50/40 border border-purple-100/60 rounded-xl p-3"
                   >
                     <h4 className="text-xs font-semibold text-purple-500 uppercase tracking-wider mb-2">
                       Recent Cognition
@@ -416,29 +415,29 @@ export default function GrandHallSessionPage() {
         )}
       </div>
 
-      {/* Chat composer — pinned to bottom */}
+      {/* ── Chat composer ─────────────────────────────────────────────── */}
       {session?.status === 'open' && (
-        <div className="shrink-0 px-6 pb-6 md:px-8 md:pb-8">
-          <GlassCard>
+        <div className="shrink-0 px-4 pb-4 pt-1">
+          <div className="bg-white/40 backdrop-blur-xl border border-white/60 rounded-2xl px-4 py-3 shadow-sm">
             <ChatComposer
               sessionId={sessionId}
               disabled={isOffline}
               onStreamUpdate={handleStreamUpdate}
             />
-          </GlassCard>
+          </div>
         </div>
       )}
 
       {session?.status === 'closed' && (
-        <div className="shrink-0 px-6 pb-6 md:px-8 md:pb-8 text-center text-sm text-gray-400">
-          This session is closed.
+        <div className="shrink-0 px-4 pb-4 text-center text-xs text-gray-400 pt-2">
+          Session closed — no further messages.
         </div>
       )}
 
       {session?.status === 'recovery_required' && (
-        <div className="shrink-0 px-6 pb-6 md:px-8 md:pb-8">
-          <div className="text-center text-sm text-amber-600 bg-amber-50/60 border border-amber-200 rounded-2xl py-4 px-6">
-            This session requires recovery before sending new messages.
+        <div className="shrink-0 px-4 pb-4 pt-1">
+          <div className="text-center text-sm text-amber-600 bg-amber-50/60 border border-amber-200 rounded-2xl py-3 px-6">
+            Recovery required before sending messages.
           </div>
         </div>
       )}
