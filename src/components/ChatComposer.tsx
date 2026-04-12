@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Send, Square, AlertCircle } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
@@ -46,7 +46,17 @@ export function ChatComposer({ sessionId, disabled, onSend, onStreamUpdate }: Ch
   const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined)
   const abortRef = useRef<(() => void) | null>(null)
   const streamAccumRef = useRef('')
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const prevStreamState = useRef<StreamState>('idle')
   const qc = useQueryClient()
+
+  // Refocus textarea when streaming finishes so the user can keep typing
+  useEffect(() => {
+    if (prevStreamState.current === 'streaming' && streamState !== 'streaming') {
+      requestAnimationFrame(() => textareaRef.current?.focus())
+    }
+    prevStreamState.current = streamState
+  }, [streamState])
 
   const handleSend = useCallback(() => {
     const text = input.trim()
@@ -78,7 +88,9 @@ export function ChatComposer({ sessionId, disabled, onSend, onStreamUpdate }: Ch
       },
       () => {
         setStreamState('idle')
-        onStreamUpdate?.('', false)
+        // Pass the final accumulated text (not empty) so the parent keeps
+        // the bubble visible until the real transcript entry arrives.
+        onStreamUpdate?.(streamAccumRef.current, false)
         void qc.invalidateQueries({ queryKey: queryKeys.sessions.transcript(sessionId) })
       },
       (err) => {
@@ -92,7 +104,7 @@ export function ChatComposer({ sessionId, disabled, onSend, onStreamUpdate }: Ch
       setStreamState('idle')
       onStreamUpdate?.('', false)
     }
-  }, [input, streamState, sessionId, qc, onStreamUpdate])
+  }, [input, streamState, sessionId, qc, onSend, onStreamUpdate])
 
   const handleAbort = useCallback(() => {
     abortRef.current?.()
@@ -140,6 +152,7 @@ export function ChatComposer({ sessionId, disabled, onSend, onStreamUpdate }: Ch
       <div className="flex items-end gap-2">
         <div className="relative flex-1">
           <textarea
+            ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}

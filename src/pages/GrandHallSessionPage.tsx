@@ -90,7 +90,11 @@ export default function GrandHallSessionPage() {
   useEffect(() => {
     if (!pendingUserMsg) return
     const last = [...messageEntries].reverse().find((e) => e.actor === 'user')
-    if (last?.text === pendingUserMsg) setPendingUserMsg(null)
+    if (last?.text === pendingUserMsg) {
+      setPendingUserMsg(null)
+      setLiveText('')   // clear live bubble once real entries land — no flash
+      setLiveActive(false)
+    }
   }, [messageEntries, pendingUserMsg])
 
   useEffect(() => {
