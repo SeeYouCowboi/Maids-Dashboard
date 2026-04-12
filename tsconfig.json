@@ -15,7 +15,11 @@
     "noUnusedParameters": false,
     "skipLibCheck": true,
     "allowImportingTsExtensions": true,
-    "noEmit": true
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@maidsclaw/contracts/*": ["../MaidsClaw/src/contracts/cockpit/*"]
+    }
   },
   "include": ["src"]
 }
