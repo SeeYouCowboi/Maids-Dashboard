@@ -21,6 +21,7 @@ export default function App() {
   const [isMobile, setIsMobile] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
+  const isSessionDetail = location.pathname.startsWith('/grand-hall/sessions/')
   const health = useHealth()
 
   const offlineValue = useMemo<OfflineContextValue>(
@@ -89,7 +90,7 @@ export default function App() {
               </button>
             )}
 
-            <div className="h-full overflow-y-auto overflow-x-hidden overscroll-none">
+            <div className={isSessionDetail ? 'h-full overflow-hidden' : 'h-full overflow-y-auto overflow-x-hidden overscroll-none'}>
               <Suspense
                 fallback={
                   <div className="flex items-center justify-center h-full">
@@ -104,7 +105,7 @@ export default function App() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -16 }}
                     transition={{ type: 'spring', bounce: 0.18, duration: 0.38 }}
-                    className={location.pathname === '/' ? '' : 'min-h-full p-6 md:p-8'}
+                    className={location.pathname === '/' ? '' : isSessionDetail ? 'h-full' : 'min-h-full p-6 md:p-8'}
                   >
                     <Routes location={location}>
                       {ROOMS.map((room) => (

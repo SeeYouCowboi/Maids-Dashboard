@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react'
-import { motion, AnimatePresence } from 'motion/react'
+import { AnimatePresence, motion } from 'motion/react'
 import { Send, Square, AlertCircle } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import type { TurnStreamRequest } from '../contracts'
@@ -9,6 +9,7 @@ import { queryKeys } from '../query/keys'
 interface ChatComposerProps {
   sessionId: string
   disabled?: boolean | undefined
+  onStreamUpdate?: (text: string, active: boolean) => void
 }
 
 type StreamState = 'idle' | 'streaming' | 'error'
@@ -38,13 +39,12 @@ function extractChunkText(chunk: StreamChunk): string {
   return ''
 }
 
-export function ChatComposer({ sessionId, disabled }: ChatComposerProps) {
+export function ChatComposer({ sessionId, disabled, onStreamUpdate }: ChatComposerProps) {
   const [input, setInput] = useState('')
   const [streamState, setStreamState] = useState<StreamState>('idle')
-  const [streamedText, setStreamedText] = useState('')
   const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined)
   const abortRef = useRef<(() => void) | null>(null)
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const streamAccumRef = useRef('')
   const qc = useQueryClient()
 
   const handleSend = useCallback(() => {
@@ -52,9 +52,10 @@ export function ChatComposer({ sessionId, disabled }: ChatComposerProps) {
     if (!text || streamState === 'streaming') return
 
     setInput('')
-    setStreamedText('')
     setErrorMessage(undefined)
     setStreamState('streaming')
+    streamAccumRef.current = ''
+    onStreamUpdate?.('', true)
 
     const body: TurnStreamRequest = {
       user_message: { text },
@@ -66,29 +67,37 @@ export function ChatComposer({ sessionId, disabled }: ChatComposerProps) {
       (chunk) => {
         const parsed = tryParseChunk(chunk)
         if (parsed) {
-          setStreamedText((prev) => prev + extractChunkText(parsed))
+          const delta = extractChunkText(parsed)
+          if (delta) {
+            streamAccumRef.current += delta
+            onStreamUpdate?.(streamAccumRef.current, true)
+          }
         }
       },
       () => {
         setStreamState('idle')
+        onStreamUpdate?.('', false)
         void qc.invalidateQueries({ queryKey: queryKeys.sessions.transcript(sessionId) })
       },
       (err) => {
         setErrorMessage(err.message)
         setStreamState('error')
+        onStreamUpdate?.('', false)
       },
     )
     abortRef.current = () => {
       cancel()
       setStreamState('idle')
+      onStreamUpdate?.('', false)
     }
-  }, [input, streamState, sessionId, qc])
+  }, [input, streamState, sessionId, qc, onStreamUpdate])
 
   const handleAbort = useCallback(() => {
     abortRef.current?.()
     abortRef.current = null
     setStreamState('idle')
-  }, [])
+    onStreamUpdate?.('', false)
+  }, [onStreamUpdate])
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -100,27 +109,11 @@ export function ChatComposer({ sessionId, disabled }: ChatComposerProps) {
     [handleSend],
   )
 
-  const isDisabled = disabled === true || streamState === 'streaming'
+  const isInputDisabled = disabled === true || streamState === 'streaming'
+  const canSend = input.trim().length > 0 && !isInputDisabled
 
   return (
-    <div className="space-y-3">
-      <AnimatePresence mode="wait">
-        {streamedText.length > 0 && (
-          <motion.div
-            key="streamed"
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="bg-white/50 backdrop-blur-sm border border-white/70 rounded-2xl p-4 text-sm text-gray-700 whitespace-pre-wrap max-h-64 overflow-y-auto"
-          >
-            {streamedText}
-            {streamState === 'streaming' && (
-              <span className="inline-block w-1.5 h-4 bg-pink-400 animate-pulse ml-0.5 rounded-full align-text-bottom" />
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
+    <div className="space-y-2">
       <AnimatePresence>
         {errorMessage != null && (
           <motion.div
@@ -143,34 +136,35 @@ export function ChatComposer({ sessionId, disabled }: ChatComposerProps) {
       </AnimatePresence>
 
       <div className="flex items-end gap-2">
-        <textarea
-          ref={textareaRef}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder={isDisabled ? 'Session is not accepting messages…' : 'Type your message…'}
-          disabled={isDisabled}
-          rows={1}
-          className="flex-1 bg-white/60 backdrop-blur-sm border border-white/80 rounded-2xl px-4 py-3 text-sm text-gray-700 placeholder-gray-400 resize-none focus:outline-none focus:border-pink-300 focus:ring-2 focus:ring-pink-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
-        />
-        {streamState === 'streaming' ? (
-          <button
-            type="button"
-            onClick={handleAbort}
-            className="shrink-0 p-3 rounded-2xl bg-red-50 border border-red-200 text-red-500 hover:bg-red-100 hover:text-red-600 transition-all duration-200"
-            aria-label="Stop streaming"
-          >
-            <Square className="w-4 h-4" />
-          </button>
-        ) : (
+        <div className="relative flex-1">
+          <textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={isInputDisabled ? 'Waiting for reply…' : 'Type a message… (Enter to send)'}
+            disabled={isInputDisabled}
+            rows={1}
+            className="w-full bg-white/60 backdrop-blur-sm border border-white/80 rounded-2xl px-4 py-3 pr-11 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none focus:border-pink-200 focus:ring-2 focus:ring-pink-100/60 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
+          />
           <button
             type="button"
             onClick={handleSend}
-            disabled={isDisabled || input.trim().length === 0}
-            className="shrink-0 p-3 rounded-2xl bg-gradient-to-br from-pink-400 to-pink-500 text-white shadow-sm hover:shadow-md hover:from-pink-500 hover:to-pink-600 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none transition-all duration-200"
+            disabled={!canSend}
             aria-label="Send message"
+            className="absolute right-2 bottom-2 p-1.5 rounded-xl text-pink-400 hover:text-pink-600 hover:bg-pink-50/80 disabled:text-gray-200 disabled:pointer-events-none transition-all duration-200"
           >
             <Send className="w-4 h-4" />
+          </button>
+        </div>
+
+        {streamState === 'streaming' && (
+          <button
+            type="button"
+            onClick={handleAbort}
+            aria-label="Stop streaming"
+            className="shrink-0 p-2.5 rounded-2xl text-gray-400 hover:text-rose-400 hover:bg-rose-50/60 border border-transparent hover:border-rose-100 transition-all duration-200"
+          >
+            <Square className="w-4 h-4" />
           </button>
         )}
       </div>
