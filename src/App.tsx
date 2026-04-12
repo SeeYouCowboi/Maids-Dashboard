@@ -14,6 +14,7 @@ import { useHealth } from './hooks/useHealth'
 const MOBILE_BREAKPOINT = 1024
 
 const GrandHallSessionPage = lazy(() => import('./pages/GrandHallSessionPage'))
+const StudyPage = lazy(() => import('./pages/StudyPage'))
 
 export default function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
@@ -41,7 +42,8 @@ export default function App() {
 
   const activeRoomId =
     ROOMS.find((r) => r.path === location.pathname)?.id ??
-    (location.pathname.startsWith('/grand-hall') ? 'grand-hall' : null)
+    (location.pathname.startsWith('/grand-hall') ? 'grand-hall' : null) ??
+    (location.pathname.startsWith('/study') ? 'study' : null)
 
   const handleTabClick = useCallback(
     (roomId: string) => {
@@ -97,7 +99,7 @@ export default function App() {
               >
                 <AnimatePresence mode="wait">
                   <motion.div
-                    key={location.pathname}
+                    key={location.pathname.startsWith('/study') ? '/study' : location.pathname}
                     initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -16 }}
@@ -109,6 +111,8 @@ export default function App() {
                         <Route key={room.id} path={room.path} element={<room.component />} />
                       ))}
                       <Route path="/grand-hall/sessions/:id" element={<GrandHallSessionPage />} />
+                      <Route path="/study/:agentId" element={<StudyPage />} />
+                      <Route path="/study/:agentId/:facet" element={<StudyPage />} />
                     </Routes>
                   </motion.div>
                 </AnimatePresence>
