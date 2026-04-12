@@ -180,4 +180,28 @@ describe('streamTurn', () => {
 
     expect((onError.mock.calls[0]![0] as Error).message).toContain('503')
   })
+
+  it('fires onError (not onChunk) when gateway emits error event', async () => {
+    const chunks: string[] = []
+    const onError = vi.fn()
+    const onDone = vi.fn()
+    const response = makeSseResponse([
+      'data: {"type":"delta","data":{"text":"hello"}}\n\n',
+      'data: {"type":"error","data":{"code":"AGENT_RUNTIME_ERROR","message":"Model unavailable","retriable":false}}\n\n',
+    ])
+
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(response)
+
+    streamTurn('sess-1', {}, (chunk) => chunks.push(chunk), onDone, onError)
+
+    await vi.waitFor(() => expect(onError).toHaveBeenCalledOnce(), { timeout: 2000 })
+
+    // Only the delta chunk before the error should be emitted
+    expect(chunks).toHaveLength(1)
+    expect(JSON.parse(chunks[0]!)).toEqual({ type: 'delta', data: { text: 'hello' } })
+    // onDone must NOT be called
+    expect(onDone).not.toHaveBeenCalled()
+    // Error message should be forwarded
+    expect((onError.mock.calls[0]![0] as Error).message).toBe('Model unavailable')
+  })
 })

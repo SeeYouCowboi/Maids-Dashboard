@@ -64,6 +64,19 @@ export function streamTurn(
               return
             }
 
+            if (parsed.type === 'error') {
+              const errData = parsed.data
+              const message =
+                typeof errData === 'object' &&
+                errData !== null &&
+                'message' in errData &&
+                typeof (errData as Record<string, unknown>).message === 'string'
+                  ? (errData as Record<string, unknown>).message as string
+                  : 'Gateway stream error'
+              onError(new Error(message))
+              return
+            }
+
             onChunk(payload)
           }
         }
