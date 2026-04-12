@@ -258,19 +258,19 @@ export default function GrandHallSessionPage() {
         </div>
       </div>
 
-      {/* ── Scrollable content ────────────────────────────────────────── */}
-      <div className="flex-1 min-h-0 overflow-y-auto px-4 pt-2 pb-2">
+      {/* ── Content (card fills height; scroll is inside the card) ──── */}
+      <div className="flex-1 min-h-0 flex flex-col px-4 pt-2 pb-2">
 
         {activeTab === 'transcript' && (
-          <GlassCard color="blue" className="!p-4">
+          <GlassCard color="blue" className="flex-1 min-h-0 flex flex-col !p-0 overflow-hidden">
             {transcriptQuery.isLoading && (
-              <div className="py-8">
+              <div className="flex-1 flex items-center justify-center py-8">
                 <LoadingSpinner />
               </div>
             )}
 
             {transcriptQuery.isError && (
-              <div className="text-xs text-red-500 py-4">
+              <div className="flex-1 flex items-center justify-center text-xs text-red-500 p-4">
                 {transcriptQuery.error instanceof ApiError
                   ? `${String(transcriptQuery.error.status)}: ${transcriptQuery.error.message}`
                   : 'Failed to load transcript'}
@@ -278,7 +278,7 @@ export default function GrandHallSessionPage() {
             )}
 
             {transcriptQuery.isSuccess && (
-              <div className="space-y-3">
+              <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3">
                 {messageEntries.length === 0 && !liveActive && !liveText ? (
                   <EmptyState
                     icon={<MessageSquare className="w-6 h-6" />}
@@ -342,8 +342,9 @@ export default function GrandHallSessionPage() {
         )}
 
         {activeTab === 'memory' && (
-          <GlassCard color="purple" className="!p-4">
-            <div className="flex items-center justify-between mb-3">
+          <GlassCard color="purple" className="flex-1 min-h-0 flex flex-col !p-0 overflow-hidden">
+            {/* Fixed header */}
+            <div className="shrink-0 flex items-center justify-between px-4 pt-3 pb-2">
               <h3 className="text-xs font-semibold text-purple-500 flex items-center gap-1.5 tracking-wide uppercase">
                 <Brain className="w-3.5 h-3.5" />
                 Memory Snapshot
@@ -360,57 +361,60 @@ export default function GrandHallSessionPage() {
               </button>
             </div>
 
-            {memoryQuery.isLoading && <div className="py-8"><LoadingSpinner /></div>}
+            {/* Scrollable body */}
+            <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-4 space-y-3">
+              {memoryQuery.isLoading && <div className="py-8 flex justify-center"><LoadingSpinner /></div>}
 
-            {memoryQuery.isError && (
-              <div className="text-xs text-red-500 py-4">
-                {memoryQuery.error instanceof ApiError
-                  ? `${String(memoryQuery.error.status)}: ${memoryQuery.error.message}`
-                  : 'Failed to load memory'}
-              </div>
-            )}
+              {memoryQuery.isError && (
+                <div className="text-xs text-red-500 py-4">
+                  {memoryQuery.error instanceof ApiError
+                    ? `${String(memoryQuery.error.status)}: ${memoryQuery.error.message}`
+                    : 'Failed to load memory'}
+                </div>
+              )}
 
-            {memoryQuery.isSuccess && (
-              <div className="space-y-3">
-                {memoryQuery.data.core_memory_summary.length === 0 ? (
-                  <EmptyState icon={<Brain className="w-6 h-6" />} message="No memory blocks." />
-                ) : (
-                  memoryQuery.data.core_memory_summary.map((item, i) => (
+              {memoryQuery.isSuccess && (
+                <>
+                  {memoryQuery.data.core_memory_summary.length === 0 ? (
+                    <EmptyState icon={<Brain className="w-6 h-6" />} message="No memory blocks." />
+                  ) : (
+                    memoryQuery.data.core_memory_summary.map((item, i) => (
+                      <motion.div
+                        key={item.label}
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.04 }}
+                        className="bg-white/50 border border-purple-100/60 rounded-xl p-3"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold text-purple-500 uppercase tracking-wider">
+                            {item.label}
+                          </span>
+                          <span className="text-[10px] text-gray-400">
+                            {item.chars_current} / {item.char_limit}
+                          </span>
+                        </div>
+                      </motion.div>
+                    ))
+                  )}
+                  {memoryQuery.data.recent_cognition && (
                     <motion.div
-                      key={item.label}
                       initial={{ opacity: 0, y: 6 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.04 }}
-                      className="bg-white/50 border border-purple-100/60 rounded-xl p-3"
+                      transition={{ delay: memoryQuery.data.core_memory_summary.length * 0.04 }}
+                      className="bg-purple-50/40 border border-purple-100/60 rounded-xl p-3"
                     >
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-purple-500 uppercase tracking-wider">
-                          {item.label}
-                        </span>
-                        <span className="text-[10px] text-gray-400">
-                          {item.chars_current} / {item.char_limit}
-                        </span>
-                      </div>
+                      <h4 className="text-xs font-semibold text-purple-500 uppercase tracking-wider mb-2">
+                        Recent Cognition
+                      </h4>
+                      <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+                        {memoryQuery.data.recent_cognition}
+                      </p>
                     </motion.div>
-                  ))
-                )}
-                {memoryQuery.data.recent_cognition && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: memoryQuery.data.core_memory_summary.length * 0.04 }}
-                    className="bg-purple-50/40 border border-purple-100/60 rounded-xl p-3"
-                  >
-                    <h4 className="text-xs font-semibold text-purple-500 uppercase tracking-wider mb-2">
-                      Recent Cognition
-                    </h4>
-                    <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
-                      {memoryQuery.data.recent_cognition}
-                    </p>
-                  </motion.div>
-                )}
-              </div>
-            )}
+                  )}
+                </>
+              )}
+            </div>
           </GlassCard>
         )}
       </div>
