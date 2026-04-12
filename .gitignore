@@ -40,6 +40,10 @@ node_modules/
 dist/
 .npm/
 
+# Playwright
+test-results/
+playwright-report/
+
 # Frontend build output — never commit; run `cd frontend && npm run build` to regenerate
 static/assets/
 static/index.html
