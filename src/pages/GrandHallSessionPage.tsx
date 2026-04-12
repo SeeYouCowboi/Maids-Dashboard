@@ -46,6 +46,7 @@ export default function GrandHallSessionPage() {
   const qc = useQueryClient()
   const [activeTab, setActiveTab] = useState<DetailTab>('transcript')
   const [actionError, setActionError] = useState<string | undefined>(undefined)
+  const [pendingUserMsg, setPendingUserMsg] = useState<string | null>(null)
   const [liveText, setLiveText] = useState('')
   const [liveActive, setLiveActive] = useState(false)
   const transcriptEndRef = useRef<HTMLDivElement>(null)
@@ -82,13 +83,29 @@ export default function GrandHallSessionPage() {
     enabled: sessionId != null && activeTab === 'memory',
   })
 
+  // Clear optimistic user bubble once the real transcript entry arrives
+  const messageEntries = (transcriptQuery.data?.entries as readonly TranscriptEntry[] | undefined)
+    ?.filter((e) => e.record_type === 'message') ?? []
+
+  useEffect(() => {
+    if (!pendingUserMsg) return
+    const last = [...messageEntries].reverse().find((e) => e.actor === 'user')
+    if (last?.text === pendingUserMsg) setPendingUserMsg(null)
+  }, [messageEntries, pendingUserMsg])
+
   useEffect(() => {
     transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [transcriptQuery.data, liveText, liveActive])
+  }, [messageEntries, liveText, liveActive, pendingUserMsg])
+
+  const handleSendOptimistic = useCallback((text: string) => {
+    setPendingUserMsg(text)
+  }, [])
 
   const handleStreamUpdate = useCallback((text: string, active: boolean) => {
     setLiveText(text)
     setLiveActive(active)
+    // Stream ended with no text = error path; clear pending
+    if (!active && !text) setPendingUserMsg(null)
   }, [])
 
   const closeMutation = useMutation({
@@ -128,9 +145,6 @@ export default function GrandHallSessionPage() {
       </div>
     )
   }
-
-  const messageEntries = (transcriptQuery.data?.entries as readonly TranscriptEntry[] | undefined)
-    ?.filter((e) => e.record_type === 'message') ?? []
 
   return (
     <div className="h-full flex flex-col gap-0">
@@ -279,7 +293,7 @@ export default function GrandHallSessionPage() {
 
             {transcriptQuery.isSuccess && (
               <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3">
-                {messageEntries.length === 0 && !liveActive && !liveText ? (
+                {messageEntries.length === 0 && !pendingUserMsg && !liveActive && !liveText ? (
                   <EmptyState
                     icon={<MessageSquare className="w-6 h-6" />}
                     message="No messages yet."
@@ -316,7 +330,42 @@ export default function GrandHallSessionPage() {
                       </motion.div>
                     ))}
 
-                    {(liveActive || liveText) && (
+                    {/* Optimistic user bubble — shown immediately on send */}
+                    {pendingUserMsg && (
+                      <motion.div
+                        initial={{ opacity: 0, x: 10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className="rounded-2xl px-4 py-3 bg-pink-50/70 border border-pink-100/80 ml-10"
+                      >
+                        <div className="mb-1">
+                          <span className="text-[10px] text-gray-400">You</span>
+                        </div>
+                        <p className="text-[15px] leading-[1.7] text-gray-700 whitespace-pre-wrap">
+                          {pendingUserMsg}
+                        </p>
+                      </motion.div>
+                    )}
+
+                    {/* Typing dots while waiting for first token */}
+                    {liveActive && !liveText && (
+                      <motion.div
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className="rounded-2xl px-4 py-3 bg-white/60 border border-white/80 mr-10"
+                      >
+                        <div className="mb-2">
+                          <span className="text-[10px] text-gray-400">{agentDisplayName}</span>
+                        </div>
+                        <div className="flex gap-1.5 items-center py-0.5">
+                          <span className="w-1.5 h-1.5 bg-gray-300 rounded-full animate-bounce [animation-delay:0ms]" />
+                          <span className="w-1.5 h-1.5 bg-gray-300 rounded-full animate-bounce [animation-delay:160ms]" />
+                          <span className="w-1.5 h-1.5 bg-gray-300 rounded-full animate-bounce [animation-delay:320ms]" />
+                        </div>
+                      </motion.div>
+                    )}
+
+                    {/* Streaming text once tokens start arriving */}
+                    {liveText && (
                       <motion.div
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
@@ -426,6 +475,7 @@ export default function GrandHallSessionPage() {
             <ChatComposer
               sessionId={sessionId}
               disabled={isOffline}
+              onSend={handleSendOptimistic}
               onStreamUpdate={handleStreamUpdate}
             />
           </div>

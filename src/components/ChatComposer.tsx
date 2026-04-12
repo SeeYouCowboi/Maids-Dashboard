@@ -9,6 +9,7 @@ import { queryKeys } from '../query/keys'
 interface ChatComposerProps {
   sessionId: string
   disabled?: boolean | undefined
+  onSend?: (text: string) => void
   onStreamUpdate?: (text: string, active: boolean) => void
 }
 
@@ -39,7 +40,7 @@ function extractChunkText(chunk: StreamChunk): string {
   return ''
 }
 
-export function ChatComposer({ sessionId, disabled, onStreamUpdate }: ChatComposerProps) {
+export function ChatComposer({ sessionId, disabled, onSend, onStreamUpdate }: ChatComposerProps) {
   const [input, setInput] = useState('')
   const [streamState, setStreamState] = useState<StreamState>('idle')
   const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined)
@@ -55,6 +56,7 @@ export function ChatComposer({ sessionId, disabled, onStreamUpdate }: ChatCompos
     setErrorMessage(undefined)
     setStreamState('streaming')
     streamAccumRef.current = ''
+    onSend?.(text)
     onStreamUpdate?.('', true)
 
     const body: TurnStreamRequest = {
