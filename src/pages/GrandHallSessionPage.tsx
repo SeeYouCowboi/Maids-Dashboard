@@ -16,7 +16,7 @@ import {
   closeSession,
   recoverSession,
 } from '../api/sessions'
-import type { TranscriptEntry, MemorySnapshotBlock } from '../api/sessions'
+import type { TranscriptEntry, MemoryView } from '../api/sessions'
 import type { SessionListItem, SessionStatus } from '../contracts'
 import { queryKeys } from '../query/keys'
 import { ApiError } from '../api/client'
@@ -31,7 +31,7 @@ const STATUS_VARIANT: Record<SessionStatus, 'success' | 'warning' | 'error'> = {
 }
 
 function formatTs(unix: number): string {
-  return new Date(unix * 1000).toLocaleString(undefined, {
+  return new Date(unix).toLocaleString(undefined, {
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
@@ -248,22 +248,22 @@ export default function GrandHallSessionPage() {
                 (transcriptQuery.data.entries as readonly TranscriptEntry[]).map((entry, i) => (
                   <motion.div
                     key={`${String(entry.timestamp)}-${String(i)}`}
-                    initial={{ opacity: 0, x: entry.role === 'user' ? 12 : -12 }}
+                    initial={{ opacity: 0, x: entry.actor === 'user' ? 12 : -12 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: i * 0.03 }}
                     className={`rounded-xl p-3 text-sm ${
-                      entry.role === 'user'
+                      entry.actor === 'user'
                         ? 'bg-pink-50/60 border border-pink-100 ml-8'
                         : 'bg-white/50 border border-white/70 mr-8'
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400">
-                        {entry.role}
+                        {entry.actor}
                       </span>
                       <span className="text-[10px] text-gray-400">{formatTs(entry.timestamp)}</span>
                     </div>
-                    <p className="text-gray-700 whitespace-pre-wrap">{entry.content}</p>
+                    <p className="text-gray-700 whitespace-pre-wrap">{entry.text ?? entry.record_type}</p>
                   </motion.div>
                 ))
               )}
@@ -307,23 +307,42 @@ export default function GrandHallSessionPage() {
 
           {memoryQuery.isSuccess && (
             <div className="space-y-3">
-              {(memoryQuery.data.blocks as readonly MemorySnapshotBlock[]).length === 0 ? (
+              {memoryQuery.data.core_memory_summary.length === 0 ? (
                 <EmptyState icon={<Brain className="w-6 h-6" />} message="No memory blocks." />
               ) : (
-                (memoryQuery.data.blocks as readonly MemorySnapshotBlock[]).map((block, i) => (
+                memoryQuery.data.core_memory_summary.map((item, i) => (
                   <motion.div
-                    key={block.label}
+                    key={item.label}
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.05 }}
                     className="bg-white/50 border border-purple-100/60 rounded-xl p-4"
                   >
-                    <h4 className="text-xs font-bold text-purple-500 uppercase tracking-wider mb-2">
-                      {block.label}
-                    </h4>
-                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{block.content}</p>
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-xs font-bold text-purple-500 uppercase tracking-wider">
+                        {item.label}
+                      </h4>
+                      <span className="text-[10px] text-gray-400">
+                        {item.chars_current} / {item.char_limit} chars
+                      </span>
+                    </div>
                   </motion.div>
                 ))
+              )}
+              {memoryQuery.data.recent_cognition && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: memoryQuery.data.core_memory_summary.length * 0.05 }}
+                  className="bg-purple-50/40 border border-purple-100/60 rounded-xl p-4"
+                >
+                  <h4 className="text-xs font-bold text-purple-500 uppercase tracking-wider mb-2">
+                    Recent Cognition
+                  </h4>
+                  <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                    {memoryQuery.data.recent_cognition}
+                  </p>
+                </motion.div>
               )}
             </div>
           )}

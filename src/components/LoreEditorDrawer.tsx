@@ -83,9 +83,10 @@ export function LoreEditorDrawer({ open, lore, onClose }: LoreEditorDrawerProps)
 
   useEffect(() => {
     if (open) {
+      saveMutation.reset()
       resetToLore(lore)
     }
-  }, [open, lore, resetToLore])
+  }, [open, lore, resetToLore]) // saveMutation.reset is a stable TanStack Query function
 
   const saveMutation = useMutation({
     mutationFn: (data: LoreForm) => (isEdit ? updateLore(data.id, data) : createLore(data)),

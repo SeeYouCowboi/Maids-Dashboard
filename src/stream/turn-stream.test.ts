@@ -41,74 +41,69 @@ beforeEach(() => {
 })
 
 describe('streamTurn', () => {
-  it('emits parsed chunks from SSE data lines', async () => {
+  it('emits parsed delta chunks and fires onDone', async () => {
     const chunks: string[] = []
+    const onDone = vi.fn()
     const response = makeSseResponse([
-      'data: {"type":"chunk","content":"hello"}\n\n',
-      'data: {"type":"chunk","content":"world"}\n\n',
-      'data: {"type":"done"}\n\n',
+      'data: {"type":"delta","data":{"text":"hello"}}\n\n',
+      'data: {"type":"delta","data":{"text":"world"}}\n\n',
+      'data: {"type":"done","data":{"total_tokens":2}}\n\n',
     ])
 
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(response)
 
     const cleanup = streamTurn('sess-1', {}, (chunk) => {
       chunks.push(chunk)
-    })
+    }, onDone, vi.fn())
 
-    await vi.waitFor(() => expect(chunks.length).toBe(3), { timeout: 2000 })
+    await vi.waitFor(() => expect(onDone).toHaveBeenCalledOnce(), { timeout: 2000 })
 
-    expect(JSON.parse(chunks[0]!)).toEqual({
-      type: 'chunk',
-      content: 'hello',
-    })
-    expect(JSON.parse(chunks[1]!)).toEqual({
-      type: 'chunk',
-      content: 'world',
-    })
-    expect(JSON.parse(chunks[2]!)).toEqual({ type: 'done' })
+    expect(chunks).toHaveLength(2)
+    expect(JSON.parse(chunks[0]!)).toEqual({ type: 'delta', data: { text: 'hello' } })
+    expect(JSON.parse(chunks[1]!)).toEqual({ type: 'delta', data: { text: 'world' } })
 
     cleanup()
   })
 
   it('skips malformed data lines', async () => {
     const chunks: string[] = []
+    const onDone = vi.fn()
     const response = makeSseResponse([
-      'data: {"type":"chunk","content":"ok"}\n\n',
+      'data: {"type":"delta","data":{"text":"ok"}}\n\n',
       'data: NOT_JSON\n\n',
-      'data: {"type":"done"}\n\n',
+      'data: {"type":"done","data":{"total_tokens":1}}\n\n',
     ])
 
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(response)
 
     streamTurn('sess-1', {}, (chunk) => {
       chunks.push(chunk)
-    })
+    }, onDone, vi.fn())
 
-    await vi.waitFor(() => expect(chunks.length).toBe(2), { timeout: 2000 })
+    await vi.waitFor(() => expect(onDone).toHaveBeenCalledOnce(), { timeout: 2000 })
 
-    expect(JSON.parse(chunks[0]!)).toEqual({
-      type: 'chunk',
-      content: 'ok',
-    })
-    expect(JSON.parse(chunks[1]!)).toEqual({ type: 'done' })
+    expect(chunks).toHaveLength(1)
+    expect(JSON.parse(chunks[0]!)).toEqual({ type: 'delta', data: { text: 'ok' } })
   })
 
-  it('handles data split across chunks', async () => {
+  it('handles data split across network chunks', async () => {
     const chunks: string[] = []
-    const response = makeSseResponseChunked(['data: {"type":"ch', 'unk","content":"split"}\n\n'])
+    const onDone = vi.fn()
+    const response = makeSseResponseChunked([
+      'data: {"type":"del',
+      'ta","data":{"text":"split"}}\n\ndata: {"type":"done","data":{"total_tokens":1}}\n\n',
+    ])
 
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(response)
 
     streamTurn('sess-1', {}, (chunk) => {
       chunks.push(chunk)
-    })
+    }, onDone, vi.fn())
 
-    await vi.waitFor(() => expect(chunks.length).toBe(1), { timeout: 2000 })
+    await vi.waitFor(() => expect(onDone).toHaveBeenCalledOnce(), { timeout: 2000 })
 
-    expect(JSON.parse(chunks[0]!)).toEqual({
-      type: 'chunk',
-      content: 'split',
-    })
+    expect(chunks).toHaveLength(1)
+    expect(JSON.parse(chunks[0]!)).toEqual({ type: 'delta', data: { text: 'split' } })
   })
 
   it('stops when aborted via signal', async () => {
@@ -121,10 +116,10 @@ describe('streamTurn', () => {
       async pull(ctrl) {
         pullCount++
         if (pullCount === 1) {
-          ctrl.enqueue(encoder.encode('data: {"type":"chunk","content":"a"}\n\n'))
+          ctrl.enqueue(encoder.encode('data: {"type":"delta","data":{"text":"a"}}\n\n'))
           controller.abort()
         } else {
-          ctrl.enqueue(encoder.encode('data: {"type":"chunk","content":"b"}\n\n'))
+          ctrl.enqueue(encoder.encode('data: {"type":"delta","data":{"text":"b"}}\n\n'))
           ctrl.close()
         }
       },
@@ -143,6 +138,8 @@ describe('streamTurn', () => {
       (chunk) => {
         chunks.push(chunk)
       },
+      vi.fn(),
+      vi.fn(),
       controller.signal,
     )
 
@@ -151,21 +148,36 @@ describe('streamTurn', () => {
     expect(chunks.length).toBeLessThanOrEqual(1)
   })
 
-  it('handles done event termination', async () => {
+  it('fires onDone on done event and stops emitting chunks', async () => {
     const chunks: string[] = []
+    const onDone = vi.fn()
     const response = makeSseResponse([
-      'data: {"type":"chunk","content":"hi"}\n\n',
-      'data: {"type":"done"}\n\n',
+      'data: {"type":"delta","data":{"text":"hi"}}\n\n',
+      'data: {"type":"done","data":{"total_tokens":1}}\n\n',
     ])
 
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(response)
 
     streamTurn('sess-1', {}, (chunk) => {
       chunks.push(chunk)
-    })
+    }, onDone, vi.fn())
 
-    await vi.waitFor(() => expect(chunks.length).toBe(2), { timeout: 2000 })
+    await vi.waitFor(() => expect(onDone).toHaveBeenCalledOnce(), { timeout: 2000 })
 
-    expect(JSON.parse(chunks[1]!)).toEqual({ type: 'done' })
+    expect(chunks).toHaveLength(1)
+    expect(JSON.parse(chunks[0]!)).toEqual({ type: 'delta', data: { text: 'hi' } })
+  })
+
+  it('fires onError on non-2xx response', async () => {
+    const onError = vi.fn()
+    const response = new Response(null, { status: 503 })
+
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(response)
+
+    streamTurn('sess-1', {}, vi.fn(), vi.fn(), onError)
+
+    await vi.waitFor(() => expect(onError).toHaveBeenCalledOnce(), { timeout: 2000 })
+
+    expect((onError.mock.calls[0]![0] as Error).message).toContain('503')
   })
 })

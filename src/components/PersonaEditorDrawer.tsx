@@ -96,9 +96,10 @@ export function PersonaEditorDrawer({ open, persona, onClose }: PersonaEditorDra
 
   useEffect(() => {
     if (open) {
+      saveMutation.reset()
       resetToPersona(persona)
     }
-  }, [open, persona, resetToPersona])
+  }, [open, persona, resetToPersona]) // saveMutation.reset is a stable TanStack Query function
 
   const saveMutation = useMutation({
     mutationFn: (data: PersonaForm) =>

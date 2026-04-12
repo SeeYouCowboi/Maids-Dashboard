@@ -49,7 +49,7 @@ export function buildWeeklyTimeline(grouped: Record<DayKey, number>): DayDataPoi
 }
 
 function epochToDay(epoch: number): string {
-  return formatDay(new Date(epoch * 1000))
+  return formatDay(new Date(epoch))
 }
 
 function formatDay(d: Date): string {

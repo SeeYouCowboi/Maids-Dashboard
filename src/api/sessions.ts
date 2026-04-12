@@ -9,23 +9,30 @@ import type {
 import { apiFetch } from './client'
 
 export type TranscriptEntry = {
-  role: string
-  content: string
+  record_index: number
   timestamp: number
-  metadata?: Record<string, unknown> | undefined
+  actor: string
+  record_type: string
+  request_id?: string
+  text?: string
+  payload?: unknown
 }
 
 export type TranscriptResponse = {
+  session_id: string
   entries: readonly TranscriptEntry[]
 }
 
-export type MemorySnapshotBlock = {
+export type MemoryCoreSummaryItem = {
   label: string
-  content: string
+  chars_current: number
+  char_limit: number
 }
 
-export type MemorySnapshotResponse = {
-  blocks: readonly MemorySnapshotBlock[]
+export type MemoryView = {
+  session_id: string
+  core_memory_summary: readonly MemoryCoreSummaryItem[]
+  recent_cognition: string
 }
 
 export function listSessions(): Promise<SessionListResponse> {
@@ -57,6 +64,6 @@ export function getSessionTranscript(sessionId: string): Promise<TranscriptRespo
   return apiFetch<TranscriptResponse>(`/v1/sessions/${sessionId}/transcript`)
 }
 
-export function getSessionMemory(sessionId: string): Promise<MemorySnapshotResponse> {
-  return apiFetch<MemorySnapshotResponse>(`/v1/sessions/${sessionId}/memory`)
+export function getSessionMemory(sessionId: string): Promise<MemoryView> {
+  return apiFetch<MemoryView>(`/v1/sessions/${sessionId}/memory`)
 }

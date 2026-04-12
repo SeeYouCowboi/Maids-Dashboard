@@ -22,7 +22,7 @@ const STATUS_BADGE: Record<
 }
 
 function formatTimestamp(unix: number): string {
-  return new Date(unix * 1000).toLocaleString(undefined, {
+  return new Date(unix).toLocaleString(undefined, {
     month: 'short',
     day: 'numeric',
     hour: '2-digit',

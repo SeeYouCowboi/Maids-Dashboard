@@ -24,9 +24,9 @@ describe('groupSessionsByDay', () => {
 
   it('groups sessions by their creation date', () => {
     const sessions = [
-      makeSession({ created_at: Date.UTC(2025, 0, 15, 10) / 1000 }),
-      makeSession({ created_at: Date.UTC(2025, 0, 15, 14) / 1000 }),
-      makeSession({ created_at: Date.UTC(2025, 0, 16, 8) / 1000 }),
+      makeSession({ created_at: Date.UTC(2025, 0, 15, 10) }),
+      makeSession({ created_at: Date.UTC(2025, 0, 15, 14) }),
+      makeSession({ created_at: Date.UTC(2025, 0, 16, 8) }),
     ]
 
     const grouped = groupSessionsByDay(sessions)
@@ -37,7 +37,7 @@ describe('groupSessionsByDay', () => {
   })
 
   it('handles a single session', () => {
-    const sessions = [makeSession({ created_at: Date.UTC(2025, 5, 1, 12) / 1000 })]
+    const sessions = [makeSession({ created_at: Date.UTC(2025, 5, 1, 12) })]
     const grouped = groupSessionsByDay(sessions)
     expect(Object.keys(grouped).length).toBe(1)
   })

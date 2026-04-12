@@ -85,7 +85,7 @@ export async function apiFetch<T = unknown>(path: string, options: RequestInit =
   return res.json() as Promise<T>
 }
 
-export function apiStream(path: string, body: unknown): Promise<Response> {
+export function apiStream(path: string, body: unknown, signal?: AbortSignal): Promise<Response> {
   const base = getApiBase()
   assertOriginSafe(base)
 
@@ -101,5 +101,6 @@ export function apiStream(path: string, body: unknown): Promise<Response> {
     method: 'POST',
     headers,
     body: JSON.stringify(body),
+    signal: signal ?? null,
   })
 }

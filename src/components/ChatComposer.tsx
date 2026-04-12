@@ -1,9 +1,10 @@
 import { useState, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { Send, Square, AlertCircle } from 'lucide-react'
+import { useQueryClient } from '@tanstack/react-query'
 import type { TurnStreamRequest } from '../contracts'
 import { streamTurn } from '../stream/turn-stream'
-import { ApiError } from '../api/client'
+import { queryKeys } from '../query/keys'
 
 interface ChatComposerProps {
   sessionId: string
@@ -27,16 +28,14 @@ function tryParseChunk(raw: string): StreamChunk | undefined {
 }
 
 function extractChunkText(chunk: StreamChunk): string {
-  const delta = chunk.parsed.delta
-  if (typeof delta === 'string') return delta
-
-  const content = chunk.parsed.content
-  if (typeof content === 'string') return content
-
-  const text = chunk.parsed.text
-  if (typeof text === 'string') return text
-
-  return chunk.raw
+  if (chunk.parsed.type === 'delta') {
+    const data = chunk.parsed.data
+    if (typeof data === 'object' && data !== null && 'text' in data) {
+      const text = (data as Record<string, unknown>).text
+      if (typeof text === 'string') return text
+    }
+  }
+  return ''
 }
 
 export function ChatComposer({ sessionId, disabled }: ChatComposerProps) {
@@ -46,6 +45,7 @@ export function ChatComposer({ sessionId, disabled }: ChatComposerProps) {
   const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined)
   const abortRef = useRef<(() => void) | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const qc = useQueryClient()
 
   const handleSend = useCallback(() => {
     const text = input.trim()
@@ -60,24 +60,29 @@ export function ChatComposer({ sessionId, disabled }: ChatComposerProps) {
       user_message: { text },
     }
 
-    try {
-      const cancel = streamTurn(sessionId, body, (chunk) => {
+    const cancel = streamTurn(
+      sessionId,
+      body,
+      (chunk) => {
         const parsed = tryParseChunk(chunk)
         if (parsed) {
           setStreamedText((prev) => prev + extractChunkText(parsed))
         }
-      })
-      abortRef.current = () => {
-        cancel()
+      },
+      () => {
         setStreamState('idle')
-      }
-    } catch (err) {
-      const msg =
-        err instanceof ApiError ? `${String(err.status)}: ${err.message}` : 'Stream failed to start'
-      setErrorMessage(msg)
-      setStreamState('error')
+        void qc.invalidateQueries({ queryKey: queryKeys.sessions.transcript(sessionId) })
+      },
+      (err) => {
+        setErrorMessage(err.message)
+        setStreamState('error')
+      },
+    )
+    abortRef.current = () => {
+      cancel()
+      setStreamState('idle')
     }
-  }, [input, streamState, sessionId])
+  }, [input, streamState, sessionId, qc])
 
   const handleAbort = useCallback(() => {
     abortRef.current?.()

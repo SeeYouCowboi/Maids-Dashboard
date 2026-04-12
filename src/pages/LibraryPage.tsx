@@ -52,6 +52,7 @@ export default function LibraryPage() {
   const [editingLore, setEditingLore] = useState<LoreDetail | undefined>(undefined)
 
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | undefined>(undefined)
+  const [actionError, setActionError] = useState<string | undefined>(undefined)
 
   const personasQuery = useQuery({
     queryKey: queryKeys.personas.list(),
@@ -112,27 +113,39 @@ export default function LibraryPage() {
 
   async function openPersonaEditor(persona?: PersonaItem | undefined) {
     if (persona) {
-      const detail = await queryClient.fetchQuery({
-        queryKey: queryKeys.personas.detail(persona.id),
-        queryFn: () => getPersona(persona.id),
-      })
-      setEditingPersona(detail)
+      try {
+        const detail = await queryClient.fetchQuery({
+          queryKey: queryKeys.personas.detail(persona.id),
+          queryFn: () => getPersona(persona.id),
+        })
+        setEditingPersona(detail)
+      } catch (err) {
+        setActionError(formatApiError(err))
+        return
+      }
     } else {
       setEditingPersona(undefined)
     }
+    setActionError(undefined)
     setPersonaDrawerOpen(true)
   }
 
   async function openLoreEditor(lore?: LoreItem | undefined) {
     if (lore) {
-      const detail = await queryClient.fetchQuery({
-        queryKey: queryKeys.lore.detail(lore.id),
-        queryFn: () => getLore(lore.id),
-      })
-      setEditingLore(detail)
+      try {
+        const detail = await queryClient.fetchQuery({
+          queryKey: queryKeys.lore.detail(lore.id),
+          queryFn: () => getLore(lore.id),
+        })
+        setEditingLore(detail)
+      } catch (err) {
+        setActionError(formatApiError(err))
+        return
+      }
     } else {
       setEditingLore(undefined)
     }
+    setActionError(undefined)
     setLoreDrawerOpen(true)
   }
 
@@ -165,6 +178,19 @@ export default function LibraryPage() {
           </button>
         ))}
       </div>
+
+      {actionError != null && (
+        <div className="flex items-center gap-2 bg-red-50/80 border border-red-200 rounded-2xl px-4 py-3 text-sm text-red-600">
+          {actionError}
+          <button
+            type="button"
+            onClick={() => setActionError(undefined)}
+            className="ml-auto font-semibold hover:text-red-800 transition-colors"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       <SearchBar
         placeholder={activeTab === 'personas' ? 'Search personas…' : 'Search lore entries…'}
