@@ -1,3 +1,4 @@
+import { useCallback, useState } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'motion/react'
@@ -6,6 +7,7 @@ import {
   Brain,
   Clock,
   FileText,
+  Filter,
   GraduationCap,
   Layers,
   MapPin,
@@ -37,6 +39,7 @@ import type {
   SettlementItem,
 } from '../contracts'
 import { useOffline } from '../hooks/OfflineContext'
+import { getLocal, setLocal } from '../lib/storage'
 import { queryKeys } from '../query/keys'
 
 /* ── Facet definitions ─────────────────────────────────────────────────── */
@@ -60,13 +63,80 @@ function isFacetKey(v: string | undefined): v is FacetKey {
 
 /* ── Timestamp formatting ──────────────────────────────────────────────── */
 
-function formatTs(unix: number): string {
-  return new Date(unix * 1000).toLocaleString(undefined, {
+/** Format an epoch-ms timestamp into a short display string. */
+function formatTs(epochMs: number): string {
+  return new Date(epochMs).toLocaleString(undefined, {
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
   })
+}
+
+/** Return ISO-8601 string for use in `dateTime` / `title` attributes. */
+function toIso(epochMs: number): string {
+  return new Date(epochMs).toISOString()
+}
+
+/* ── Study URL builder ─────────────────────────────────────────────────── */
+
+export interface StudyUrlParams {
+  agentId: string
+  facet?: FacetKey
+  request_id?: string | null
+  settlement_id?: string | null
+  tab?: string | null
+  node_ref?: string | null
+  direction?: string | null
+  rp_only?: boolean | null
+}
+
+/**
+ * Build a canonical Study deep-link. All future Study navigation MUST use
+ * this helper — no hand-rolled URL strings.
+ */
+export function buildStudyUrl(params: StudyUrlParams): string {
+  const facet = params.facet ?? 'episodes'
+  const base = `/study/${encodeURIComponent(params.agentId)}/${facet}`
+
+  const qp = new URLSearchParams()
+  if (params.request_id) qp.set('request_id', params.request_id)
+  if (params.settlement_id) qp.set('settlement_id', params.settlement_id)
+  if (params.tab) qp.set('tab', params.tab)
+  if (params.node_ref) qp.set('node_ref', params.node_ref)
+  if (params.direction) qp.set('direction', params.direction)
+  if (params.rp_only === true) qp.set('rp_only', '1')
+
+  const qs = qp.toString()
+  return qs.length > 0 ? `${base}?${qs}` : base
+}
+
+/* ── RP-only storage ───────────────────────────────────────────────────── */
+
+const RP_ONLY_STORAGE_KEY = 'study:rp-only'
+const RP_ONLY_STORAGE_VERSION = 1
+
+interface VersionedBoolean {
+  version: number
+  data: boolean
+}
+
+function readRpOnly(): boolean {
+  const raw = getLocal<VersionedBoolean>(RP_ONLY_STORAGE_KEY)
+  if (
+    raw !== null &&
+    typeof raw === 'object' &&
+    raw.version === RP_ONLY_STORAGE_VERSION &&
+    typeof raw.data === 'boolean'
+  ) {
+    return raw.data
+  }
+  return false
+}
+
+function writeRpOnly(value: boolean): void {
+  const payload: VersionedBoolean = { version: RP_ONLY_STORAGE_VERSION, data: value }
+  setLocal(RP_ONLY_STORAGE_KEY, payload)
 }
 
 /* ── Main component ────────────────────────────────────────────────────── */
@@ -77,8 +147,17 @@ export default function StudyPage() {
   const navigate = useNavigate()
   const { isOffline } = useOffline()
 
-  const activeFacet: FacetKey = isFacetKey(rawFacet) ? rawFacet : 'core-blocks'
+  const activeFacet: FacetKey = isFacetKey(rawFacet) ? rawFacet : 'episodes'
   const requestId = searchParams.get('request_id')
+
+  /* ── RP-only toggle state ────────────────────────────────────────────── */
+
+  const [rpOnly, setRpOnlyRaw] = useState<boolean>(readRpOnly)
+
+  const setRpOnly = useCallback((next: boolean) => {
+    writeRpOnly(next)
+    setRpOnlyRaw(next)
+  }, [])
 
   /* ── Agent list ──────────────────────────────────────────────────────── */
 
@@ -88,23 +167,30 @@ export default function StudyPage() {
     refetchInterval: 30_000,
   })
 
-  const agents: readonly AgentItem[] = agentsQuery.data?.agents ?? []
+  const allAgents: readonly AgentItem[] = agentsQuery.data?.agents ?? []
+  const agents: readonly AgentItem[] = rpOnly
+    ? allAgents.filter((a) => a.role === 'rp_agent')
+    : allAgents
 
   /* ── Navigate helpers ────────────────────────────────────────────────── */
 
   function selectAgent(id: string) {
-    navigate(`/study/${encodeURIComponent(id)}/${activeFacet}`)
+    navigate(buildStudyUrl({ agentId: id, facet: activeFacet }))
   }
 
   function selectFacet(key: FacetKey) {
     if (!agentId) return
-    const base = `/study/${encodeURIComponent(agentId)}/${key}`
-    if (key === 'retrieval-trace' && requestId) {
-      navigate(`${base}?request_id=${encodeURIComponent(requestId)}`)
-    } else {
-      navigate(base)
-    }
+    navigate(
+      buildStudyUrl({
+        agentId,
+        facet: key,
+        request_id: key === 'retrieval-trace' ? requestId : null,
+      }),
+    )
   }
+
+  const selectedAgentVisible = agentId != null && agents.some((a) => a.id === agentId)
+  const effectiveAgentId = selectedAgentVisible ? agentId : undefined
 
   return (
     <div className="space-y-6">
@@ -113,11 +199,26 @@ export default function StudyPage() {
       <div className="flex flex-col lg:flex-row gap-6">
         <div className="w-full lg:w-64 shrink-0">
           <GlassCard color="emerald">
-            <div className="flex items-center gap-2 mb-4">
-              <GraduationCap className="w-4 h-4 text-emerald-500" />
-              <span className="text-sm font-bold text-emerald-600">
-                {agents.length} Agent{agents.length === 1 ? '' : 's'}
-              </span>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <GraduationCap className="w-4 h-4 text-emerald-500" />
+                <span className="text-sm font-bold text-emerald-600">
+                  {agents.length} Agent{agents.length === 1 ? '' : 's'}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setRpOnly(!rpOnly)}
+                className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold transition-all duration-200 cursor-pointer ${
+                  rpOnly
+                    ? 'bg-emerald-100/80 text-emerald-700 border border-emerald-200'
+                    : 'bg-white/40 text-gray-400 border border-white/60 hover:bg-white/60'
+                }`}
+                title="Show only RP agents"
+              >
+                <Filter className="w-3 h-3" />
+                RP
+              </button>
             </div>
 
             {agentsQuery.isLoading && (
@@ -139,7 +240,7 @@ export default function StudyPage() {
 
             <div className="space-y-2 max-h-[60vh] lg:max-h-[70vh] overflow-y-auto">
               {agents.map((agent, i) => {
-                const isActive = agentId === agent.id
+                const isActive = effectiveAgentId === agent.id
                 return (
                   <motion.button
                     key={agent.id}
@@ -185,7 +286,7 @@ export default function StudyPage() {
                 key={tab.key}
                 type="button"
                 onClick={() => selectFacet(tab.key)}
-                disabled={!agentId}
+                disabled={!effectiveAgentId}
                 className={`flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl transition-all duration-200 whitespace-nowrap ${
                   activeFacet === tab.key
                     ? 'bg-white/70 text-emerald-600 shadow-sm'
@@ -198,7 +299,7 @@ export default function StudyPage() {
             ))}
           </div>
 
-          {!agentId ? (
+          {!effectiveAgentId ? (
             <GlassCard color="emerald">
               <EmptyState
                 icon={<GraduationCap className="w-8 h-8" />}
@@ -208,14 +309,14 @@ export default function StudyPage() {
           ) : (
             <AnimatePresence mode="wait">
               <motion.div
-                key={`${agentId}-${activeFacet}`}
+                key={`${effectiveAgentId}-${activeFacet}`}
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
                 transition={{ type: 'spring', bounce: 0.2, duration: 0.35 }}
               >
                 <FacetContent
-                  agentId={agentId}
+                  agentId={effectiveAgentId}
                   facet={activeFacet}
                   requestId={requestId}
                   isOffline={isOffline}
@@ -325,7 +426,13 @@ function CoreBlocksFacet({ agentId, isOffline }: { agentId: string; isOffline: b
               <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
                 {block.content}
               </p>
-              <p className="text-[10px] text-gray-400 mt-2">{formatTs(block.updated_at)}</p>
+              <time
+                dateTime={toIso(block.updated_at)}
+                title={toIso(block.updated_at)}
+                className="text-[10px] text-gray-400 mt-2"
+              >
+                {formatTs(block.updated_at)}
+              </time>
             </motion.div>
           ))}
         </div>
@@ -381,7 +488,13 @@ function EpisodesFacet({ agentId, isOffline }: { agentId: string; isOffline: boo
                     </span>
                   )}
                 </div>
-                <span className="text-[10px] text-gray-400">{formatTs(ep.committed_time)}</span>
+                <time
+                  dateTime={toIso(ep.committed_time)}
+                  title={toIso(ep.committed_time)}
+                  className="text-[10px] text-gray-400"
+                >
+                  {formatTs(ep.committed_time)}
+                </time>
               </div>
               <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
                 {ep.summary}
@@ -445,7 +558,13 @@ function NarrativesFacet({ agentId, isOffline }: { agentId: string; isOffline: b
                   />
                   <span className="text-xs font-semibold text-gray-600">{nar.scope_id}</span>
                 </div>
-                <span className="text-[10px] text-gray-400">{formatTs(nar.updated_at)}</span>
+                <time
+                  dateTime={toIso(nar.updated_at)}
+                  title={toIso(nar.updated_at)}
+                  className="text-[10px] text-gray-400"
+                >
+                  {formatTs(nar.updated_at)}
+                </time>
               </div>
               <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
                 {nar.summary_text}
@@ -516,10 +635,29 @@ function SettlementsFacet({ agentId, isOffline }: { agentId: string; isOffline: 
               </div>
               <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">
                 <span>Attempts: {String(s.attempt_count)}</span>
-                <span>Created: {formatTs(s.created_at)}</span>
+                <span>
+                  Created:{' '}
+                  <time dateTime={toIso(s.created_at)} title={toIso(s.created_at)}>
+                    {formatTs(s.created_at)}
+                  </time>
+                </span>
                 {s.claimed_by != null && <span>Claimed by: {s.claimed_by}</span>}
-                {s.claimed_at != null && <span>Claimed: {formatTs(s.claimed_at)}</span>}
-                {s.applied_at != null && <span>Applied: {formatTs(s.applied_at)}</span>}
+                {s.claimed_at != null && (
+                  <span>
+                    Claimed:{' '}
+                    <time dateTime={toIso(s.claimed_at)} title={toIso(s.claimed_at)}>
+                      {formatTs(s.claimed_at)}
+                    </time>
+                  </span>
+                )}
+                {s.applied_at != null && (
+                  <span>
+                    Applied:{' '}
+                    <time dateTime={toIso(s.applied_at)} title={toIso(s.applied_at)}>
+                      {formatTs(s.applied_at)}
+                    </time>
+                  </span>
+                )}
                 {s.error_message != null && (
                   <span className="col-span-2 text-red-500">{s.error_message}</span>
                 )}
@@ -574,7 +712,10 @@ function PinnedSummariesFacet({ agentId, isOffline }: { agentId: string; isOffli
                   {s.label}
                 </h4>
                 <span className="text-[10px] text-gray-400">
-                  {String(s.chars_current)} chars • {formatTs(s.updated_at)}
+                  {String(s.chars_current)} chars •{' '}
+                  <time dateTime={toIso(s.updated_at)} title={toIso(s.updated_at)}>
+                    {formatTs(s.updated_at)}
+                  </time>
                 </span>
               </div>
               <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
