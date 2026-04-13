@@ -743,3 +743,75 @@ C2. 剩下的 graph facet（C-1 完成后再动）：
 
 - **2026-04-13 初稿**：基于 Phase 1 验收后现场实测 + 双仓代码审读，记录 6 个已有 facet 的当前真实状态与落地计划。
 - **2026-04-13 第二版（cognition + graph 补全）**：补齐 cognition 子系统（`§2.4 / §3.3 / §4.5 / Track B`）和 graph memory 子系统（`§2.5 / §3.4 / §4.6 / Track C`）。结论：前端 Study Room 对这两个子系统**零可观察入口**——后端有完整数据，没有任何 gateway 路由。重新估算：完整 debug 闭环约 30-40 小时工作量（比第一版翻倍）。
+- **2026-04-14 Live E2E 实测发现（Playwright MCP 驱动）**：见下方 §10。
+
+---
+
+## 10. 2026-04-14 Live E2E 实测（Playwright MCP 驱动）
+
+本轮测试用 Playwright MCP 驱动浏览器走 `RP_LIVE_TEST_70_TURNS.zh-CN.md`，在 Alice session 上实跑对话并巡检 Study Room 所有 facet。修复了两个阻塞性的 runtime 配线 bug，另外发现一个数据断点待后续排查。
+
+### 10.1 已修复的 Runtime Gap（本次会话已落地）
+
+**Gap Runtime-1 — `server` 角色下无任何 durable job consumer 启动**
+- 根因：`D:\ACodingWorkSpace\MaidsClaw\src\index.ts` 以 `role: "server"` 启动 `createAppHost`，但 **没有传 `enableDurableOrchestration: true`**。`create-app-host.ts:366-383` 的三条 consumer 创建路径：
+  - `workerConsumer`：仅 `role === "worker"` — 不命中
+  - `serverDurableConsumer`：需要 `role === "server" && enableDurableOrchestration === true` — 不命中
+  - `localDurableConsumer`：仅 `role === "local"` — 不命中
+- 症状：`jobs_current` 表内 35+ 条 `cognition.thinker` job 全部 `status=pending / attempt_count=0 / claimed_by=null`。对应 Alice session 有 105 条 `interaction_records`、20+ 条真实 `request_id` 链接，但 `private_episode_events / private_cognition_current / core_memory_blocks / graph_nodes` 全部为 0。Study Room 的每一个 facet 都返回空状态——不是渲染 bug，而是后端从未产出任何可观察数据。
+- 修复：`src/index.ts` 的 `createAppHost` 调用里加 `enableDurableOrchestration: true`。这条开关同时激活 `serverDurableConsumer` 和 `leaseReclaimSweeper`，使 HTTP server 和 durable job worker 在同一个进程里共存。
+- 验证：重启 gateway 后 `cognition.thinker` 开始 claim job 并产出 `private_episode_events` / `private_cognition_current` / `private_cognition_events` 数据。
+
+**Gap Runtime-2 — `memory.organize` job 类型无 worker 注册**
+- 根因：`create-app-host.ts` 的 `createPgJobConsumer` 只注册了 `cognition.thinker` 一个 job 类型的 handler。`memory.organize` job 被 talker 流水线正常入队（`src/memory/task-agent.ts:670` 构造 `GraphOrganizerJob` → `enqueueOrganizerJobs`），但无 worker 认领，最终以 `No worker registered for job type: memory.organize` 消息耗尽 4 次尝试进入 `failed_terminal`。
+- 症状：`graph_nodes / memory_relations / fact_edges / logic_edges / semantic_edges / entity_nodes / event_nodes / node_embeddings / node_scores` 全部为 0。Study Room 的 **Graph facet** 即使前端逻辑已经按 PR1 的 `layer` 分组正常渲染，也没有任何节点数据可以展示。
+- 修复：`create-app-host.ts:createPgJobConsumer` 里追加一个 `runner.registerWorker("memory.organize", ...)` handler。它解析 payload（`{ settlementId, agentId, chunkOrdinal, chunkNodeRefs, embeddingModelId, sourceSessionId? }`），映射为 `GraphOrganizerJob`，调用 `runtime.memoryTaskAgent.runOrganize(job)`。`batchId` 用 `${settlementId}:chunk:${chunkOrdinal}` 拼接保证幂等。
+- 验证：typecheck 通过（`bunx tsc --noEmit -p tsconfig.build.json`）。实际 drain 需要 MaidsClaw 重启后观察 `graph_nodes` 等表是否增长。
+
+### 10.2 待排查：Gap B — `core_memory_blocks` 在 9 个 session 跑过后仍为 0
+
+**现象**：
+- Alice 的 `sessions` 表有 4 条记录，`rp:eveline` 2 条，`maid:main` 3 条，合计 9 条。
+- `interaction_records` 表有 105 条 user↔agent 交互。
+- `core_memory_blocks` 表 **完全空**（0 行）。
+- Study Room → Core Blocks facet 对所有 agent 均显示空状态。
+
+**为什么这是个问题**：
+- `core_memory_blocks` 是 RP agent "持久记忆画像"的核心基础。CoreMemoryService 在 `initializeFromPersonaSnapshot` 时会为每个 agent 创建一组 block（典型的 `persona / human / index` 等），后续 RP 对话里 `CoreMemoryIndexUpdater` 也会更新 `index` block。这些 block 被 `computeNodeScore` 用于 salience 打分（`graph-organizer.ts:236`：`const indexBlock = await this.coreMemory.getBlock(agentId, "index")`），如果 block 不存在，salience 评分路径会抛/退化，间接影响 graph 质量。
+- 即使 Study Room 的其它 facet（Episodes / Cognition）已经产出数据，Core Blocks facet 永远空就意味着这条"第一次激活 agent 就 bootstrap core memory"的路径没跑通。
+
+**已知的相关代码**（本会话未深入排查，只做方向定位）：
+- `D:\ACodingWorkSpace\MaidsClaw\src\runtime\turn-service.ts:250` 附近：`initializeFromPersonaSnapshot` 的调用点。之前的 Plan PR3（fb4c511 那一批）给这条路径加过 integration test，用 monkey-patch 方式验证 `coreMemoryService.initializeFromPersonaSnapshot` 被调用。
+- `D:\ACodingWorkSpace\MaidsClaw\src\memory\core-memory.ts`：`CoreMemoryService` 实现。
+- `D:\ACodingWorkSpace\MaidsClaw\src\bootstrap\runtime.ts`：`coreMemoryService = new CoreMemoryService(coreMemoryBlockRepo)` 装配点。
+- `D:\ACodingWorkSpace\MaidsClaw\src\storage\domain-repos\pg\core-memory-block-repo.ts`：`core_memory_blocks` 表的写入路径。
+
+**怀疑的几个方向**（按从高到低可能性排序）：
+1. **Bootstrap 被 try/catch 静默吞掉**：`turn-service.ts:250` 附近的 `initializeFromPersonaSnapshot` 调用可能被宽松的 try/catch 包裹，persona snapshot 查询失败（比如 `config/personas.json` 的 `alice` 条目格式不符）时静默跳过。需要打日志或 repro 验证。
+2. **Persona snapshot 源本身就是空的**：`personaService.getCard("alice")` 的返回内容可能是空的 / 缺 `systemPrompt` 等字段，导致 `initializeFromPersonaSnapshot` 被调用但构造了 0 个 block。
+3. **`isPersistent` gate**：`CoreMemoryService.initializeFromPersonaSnapshot` 可能只对 `lifecycle === "persistent"` 的 agent 生效。`rp:alice` 在 `/v1/agents` 响应里确实是 `persistent`，但 `maid:main` 和其他也是，全部空说明不是这一层过滤。
+4. **表名 typo / schema 不一致**：之前修过 `cognition_current → private_cognition_current` 的同类 bug。`core_memory_blocks` 的 SQL 可能指向了错误的表名。快速验证方式：grep `core_memory_blocks` / `FROM core_memory` 的所有 SQL 语句。
+5. **Bootstrap 只在第一个 user turn 跑**：如果 bootstrap 只在 session 建立的第一条 user message 时触发，而不是在 agent 被 "首次访问" 时触发，那么第一条消息如果命中某个快速失败路径（比如 model 调用限流），bootstrap 就不会发生，后续 turn 又因为"已经初始化过"而跳过。
+
+**排查步骤建议**：
+1. 在 `turn-service.ts:250` 附近加 `console.log("[bootstrap] initializing core memory for agent=...")`，重启 gateway 后开一个新 Alice session 发一条消息。
+2. 如果上面的日志根本不打印 → 问题在 turn-service 的分发条件（方向 5）。
+3. 如果打印了 → 直接查 `core_memory_blocks` 表 `WHERE agent_id = 'rp:alice'`；如果有行说明是 Dashboard 查询端问题（Core Blocks facet 的 gateway 路由 / SQL 错）；如果没有 → 问题在 CoreMemoryService 的写入路径（方向 1、2、3、4）。
+4. 再排查方向 4：`grep -n "core_memory_blocks" D:\ACodingWorkSpace\MaidsClaw\src -r` 比对表名是否一致。
+
+**影响范围**：
+- **直接影响**：Study Room → Core Blocks facet 完全不可用。
+- **间接影响**：`GraphOrganizer.computeNodeScore` 的 `indexPresence` 信号恒为 0，salience 打分永远偏低——graph 节点排序质量受损。
+- **不影响**：Episodes / Cognition / Retrieval Trace / Settlements / Narratives / Pinned Summaries / Graph（只要 Gap Runtime-2 已修）可以正常验证。
+
+**推荐处理方式**：开一个独立的排查会话，专注从 `turn-service.ts` 往下 trace。这个问题的根因可能跨 3-4 个文件，在当前 E2E 测试会话里处理会污染上下文。
+
+### 10.3 测试状态快照（写本节时）
+
+- **cognition.thinker worker**：✅ 运行中，持续 drain 积压 job。
+- **memory.organize worker**：⏳ 已实现，等待 gateway 重启后观察 drain 行为。
+- **Episodes facet**：✅ 后端有数据（`private_episode_events` 7+ 行）。
+- **Cognition facet**：✅ 后端有数据（`private_cognition_current` 5+ 行）。
+- **Graph facet**：⏳ 依赖 memory.organize 重启后 drain 才能验证。
+- **Core Blocks facet**：❌ 阻塞于 Gap B，排查推迟。
+- **Retrieval Trace / Settlements / Pinned Summaries / Narratives**：尚未在本轮测试中逐一点击验证，下一阶段执行。
