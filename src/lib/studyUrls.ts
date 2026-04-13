@@ -11,6 +11,7 @@ export type FacetKey =
   | 'settlements'
   | 'pinned-summaries'
   | 'retrieval-trace'
+  | 'cognition'
 
 export interface StudyUrlParams {
   agentId: string

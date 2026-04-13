@@ -62,6 +62,17 @@ export const queryKeys = {
     recentRequests: (agentId: string) =>
       [...queryKeys.study.all, 'recent-requests', agentId] as const,
   },
+  cognition: {
+    all: ['cognition'] as const,
+    assertions: (agentId: string, params?: Record<string, unknown>) =>
+      [...queryKeys.cognition.all, 'assertions', agentId, params] as const,
+    evaluations: (agentId: string, params?: Record<string, unknown>) =>
+      [...queryKeys.cognition.all, 'evaluations', agentId, params] as const,
+    commitments: (agentId: string, params?: Record<string, unknown>) =>
+      [...queryKeys.cognition.all, 'commitments', agentId, params] as const,
+    history: (agentId: string, key: string) =>
+      [...queryKeys.cognition.all, 'history', agentId, key] as const,
+  },
   health: {
     healthz: ['healthz'] as const,
     readyz: ['readyz'] as const,

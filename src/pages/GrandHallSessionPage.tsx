@@ -333,17 +333,31 @@ export default function GrandHallSessionPage() {
                           {entry.text}
                         </p>
                         {entry.actor !== 'user' && entry.request_id && session?.agent_id && (
-                          <Link
-                            to={buildStudyUrl({
-                              agentId: session.agent_id,
-                              facet: 'retrieval-trace',
-                              request_id: entry.request_id,
-                            })}
-                            className="inline-flex items-center gap-1 mt-1.5 text-[11px] text-teal-600 hover:text-teal-800 transition-colors"
-                            data-testid="grand-hall-retrieval-link"
-                          >
-                            🔍 Retrieval Trace
-                          </Link>
+                          <div className="flex items-center gap-3 mt-1.5">
+                            <Link
+                              to={buildStudyUrl({
+                                agentId: session.agent_id,
+                                facet: 'retrieval-trace',
+                                request_id: entry.request_id,
+                              })}
+                              className="inline-flex items-center gap-1 text-[11px] text-teal-600 hover:text-teal-800 transition-colors"
+                              data-testid="grand-hall-retrieval-link"
+                            >
+                              🔍 Retrieval Trace
+                            </Link>
+                            <Link
+                              to={buildStudyUrl({
+                                agentId: session.agent_id,
+                                facet: 'cognition',
+                                request_id: entry.request_id,
+                                tab: 'assertions',
+                              })}
+                              className="inline-flex items-center gap-1 text-[11px] text-teal-600 hover:text-teal-800 transition-colors"
+                              data-testid="grand-hall-cognition-link"
+                            >
+                              🧠 Cognition
+                            </Link>
+                          </div>
                         )}
                       </motion.div>
                     ))}

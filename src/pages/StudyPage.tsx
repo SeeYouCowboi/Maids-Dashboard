@@ -12,6 +12,7 @@ import {
   Filter,
   GraduationCap,
   Layers,
+  Lightbulb,
   MapPin,
   Pin,
   RefreshCw,
@@ -20,6 +21,12 @@ import {
 
 import { listAgents } from '../api/agents'
 import {
+  listCognitionAssertions,
+  listCognitionCommitments,
+  listCognitionEvaluations,
+} from '../api/cognition'
+import type { CognitionListParams } from '../api/cognition'
+import {
   listCoreMemoryBlocks,
   listEpisodes,
   listNarratives,
@@ -27,6 +34,7 @@ import {
   listSettlements,
 } from '../api/memory'
 import { getRetrievalTrace, listRecentRequests } from '../api/study'
+import { CognitionHistoryDrawer } from '../components/CognitionHistoryDrawer'
 import { GlassCard } from '../components/ui/GlassCard'
 import { EmptyState } from '../components/ui/EmptyState'
 import { LoadingSpinner } from '../components/ui/LoadingSpinner'
@@ -34,8 +42,11 @@ import { PageHeader } from '../components/ui/PageHeader'
 import { StatusBadge } from '../components/ui/StatusBadge'
 import type {
   AgentItem,
+  AssertionItem,
+  CommitmentItem,
   CoreMemoryBlock,
   EpisodeItem,
+  EvaluationItem,
   NarrativeItem,
   PinnedSummary,
   RecentRequestItem,
@@ -56,6 +67,7 @@ const FACETS = [
   { key: 'settlements', label: 'Settlements', icon: Layers },
   { key: 'pinned-summaries', label: 'Pinned Summaries', icon: Pin },
   { key: 'retrieval-trace', label: 'Retrieval Trace', icon: Search },
+  { key: 'cognition', label: 'Cognition', icon: Lightbulb },
 ] as const
 
 const VALID_FACETS = new Set<string>(FACETS.map((f) => f.key))
@@ -313,6 +325,10 @@ function FacetContent({
   requestId: string | null
   isOffline: boolean
 }) {
+  const [searchParams] = useSearchParams()
+  const settlementId = searchParams.get('settlement_id')
+  const tab = searchParams.get('tab')
+
   switch (facet) {
     case 'core-blocks':
       return <CoreBlocksFacet agentId={agentId} isOffline={isOffline} />
@@ -326,6 +342,16 @@ function FacetContent({
       return <PinnedSummariesFacet agentId={agentId} isOffline={isOffline} />
     case 'retrieval-trace':
       return <RetrievalTraceFacet agentId={agentId} requestId={requestId} isOffline={isOffline} />
+    case 'cognition':
+      return (
+        <CognitionFacet
+          agentId={agentId}
+          requestId={requestId}
+          settlementId={settlementId}
+          tab={tab}
+          isOffline={isOffline}
+        />
+      )
   }
 }
 
@@ -1076,6 +1102,343 @@ function RetrievalTraceFacet({
         </motion.div>
       )}
     </GlassCard>
+  )
+}
+
+/* ── Cognition facet ────────────────────────────────────────────────────── */
+
+type CognitionSubtab = 'assertions' | 'evaluations' | 'commitments'
+const COGNITION_SUBTABS: readonly { key: CognitionSubtab; label: string }[] = [
+  { key: 'assertions', label: 'Assertions' },
+  { key: 'evaluations', label: 'Evaluations' },
+  { key: 'commitments', label: 'Commitments' },
+]
+
+function isCognitionSubtab(v: string | null): v is CognitionSubtab {
+  return v === 'assertions' || v === 'evaluations' || v === 'commitments'
+}
+
+function CognitionFacet({
+  agentId,
+  requestId,
+  settlementId,
+  tab,
+  isOffline,
+}: {
+  agentId: string
+  requestId: string | null
+  settlementId: string | null
+  tab: string | null
+  isOffline: boolean
+}) {
+  const navigate = useNavigate()
+  const activeTab: CognitionSubtab = isCognitionSubtab(tab) ? tab : 'assertions'
+  const [historyKey, setHistoryKey] = useState<string | null>(null)
+
+  const apiParams: CognitionListParams = {
+    limit: 50,
+    ...(requestId ? { request_id: requestId } : {}),
+    ...(settlementId ? { settlement_id: settlementId } : {}),
+  }
+
+  function selectSubtab(key: CognitionSubtab) {
+    navigate(
+      buildStudyUrl({
+        agentId,
+        facet: 'cognition',
+        tab: key,
+        request_id: requestId,
+        settlement_id: settlementId,
+      }),
+    )
+  }
+
+  return (
+    <>
+      <GlassCard color="emerald">
+        <FacetHeader
+          icon={<Lightbulb className="w-4 h-4" />}
+          label="Cognition"
+          onRefresh={() => {}}
+          isOffline={isOffline}
+        />
+
+        <div className="flex items-center gap-1 bg-white/30 backdrop-blur-sm rounded-xl p-0.5 border border-white/50 w-fit mb-4">
+          {COGNITION_SUBTABS.map((st) => (
+            <button
+              key={st.key}
+              type="button"
+              onClick={() => selectSubtab(st.key)}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-[10px] transition-all duration-200 ${
+                activeTab === st.key
+                  ? 'bg-white/80 text-emerald-600 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-white/30'
+              }`}
+              data-testid={`cognition-subtab-${st.key}`}
+            >
+              {st.label}
+            </button>
+          ))}
+        </div>
+
+        {(requestId || settlementId) && (
+          <div className="flex items-center gap-2 mb-3 text-[10px] text-gray-400">
+            <span>Filtered by:</span>
+            {requestId && (
+              <code className="bg-teal-50/60 text-teal-600 px-1.5 py-0.5 rounded">
+                req: {requestId.slice(0, 12)}…
+              </code>
+            )}
+            {settlementId && (
+              <code className="bg-teal-50/60 text-teal-600 px-1.5 py-0.5 rounded">
+                stl: {settlementId.slice(0, 12)}…
+              </code>
+            )}
+            <button
+              type="button"
+              onClick={() =>
+                navigate(buildStudyUrl({ agentId, facet: 'cognition', tab: activeTab }))
+              }
+              className="text-emerald-500 hover:text-emerald-700 transition-colors cursor-pointer"
+            >
+              clear
+            </button>
+          </div>
+        )}
+
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.2 }}
+          >
+            {activeTab === 'assertions' && (
+              <AssertionsSubtab agentId={agentId} params={apiParams} onSelectKey={setHistoryKey} />
+            )}
+            {activeTab === 'evaluations' && (
+              <EvaluationsSubtab agentId={agentId} params={apiParams} onSelectKey={setHistoryKey} />
+            )}
+            {activeTab === 'commitments' && (
+              <CommitmentsSubtab agentId={agentId} params={apiParams} onSelectKey={setHistoryKey} />
+            )}
+          </motion.div>
+        </AnimatePresence>
+      </GlassCard>
+
+      {historyKey != null && (
+        <CognitionHistoryDrawer
+          agentId={agentId}
+          cognitionKey={historyKey}
+          onClose={() => setHistoryKey(null)}
+        />
+      )}
+    </>
+  )
+}
+
+function AssertionsSubtab({
+  agentId,
+  params,
+  onSelectKey,
+}: {
+  agentId: string
+  params: CognitionListParams
+  onSelectKey: (key: string) => void
+}) {
+  const query = useQuery({
+    queryKey: queryKeys.cognition.assertions(agentId, params as Record<string, unknown>),
+    queryFn: () => listCognitionAssertions(agentId, params),
+    refetchInterval: 30_000,
+  })
+
+  const items: readonly AssertionItem[] = query.data?.items ?? []
+
+  return (
+    <>
+      {query.isLoading && <FacetLoading />}
+      {query.isError && <FacetError />}
+      {query.isSuccess && items.length === 0 && (
+        <EmptyState icon={<Lightbulb className="w-6 h-6" />} message="No assertions." />
+      )}
+      {query.isSuccess && items.length > 0 && (
+        <div className="space-y-3">
+          {items.map((item, i) => (
+            <CognitionCard
+              key={item.id}
+              cognitionKey={item.cognition_key}
+              content={item.content}
+              stanceOrStatus={item.stance}
+              label="stance"
+              salience={item.salience}
+              committedTime={item.committed_time}
+              requestId={item.request_id}
+              settlementId={item.settlement_id}
+              index={i}
+              onSelect={() => onSelectKey(item.cognition_key)}
+            />
+          ))}
+        </div>
+      )}
+    </>
+  )
+}
+
+function EvaluationsSubtab({
+  agentId,
+  params,
+  onSelectKey,
+}: {
+  agentId: string
+  params: CognitionListParams
+  onSelectKey: (key: string) => void
+}) {
+  const query = useQuery({
+    queryKey: queryKeys.cognition.evaluations(agentId, params as Record<string, unknown>),
+    queryFn: () => listCognitionEvaluations(agentId, params),
+    refetchInterval: 30_000,
+  })
+
+  const items: readonly EvaluationItem[] = query.data?.items ?? []
+
+  return (
+    <>
+      {query.isLoading && <FacetLoading />}
+      {query.isError && <FacetError />}
+      {query.isSuccess && items.length === 0 && (
+        <EmptyState icon={<Lightbulb className="w-6 h-6" />} message="No evaluations." />
+      )}
+      {query.isSuccess && items.length > 0 && (
+        <div className="space-y-3">
+          {items.map((item, i) => (
+            <CognitionCard
+              key={item.id}
+              cognitionKey={item.cognition_key}
+              content={item.content}
+              stanceOrStatus={item.status}
+              label="status"
+              salience={item.salience}
+              committedTime={item.committed_time}
+              requestId={item.request_id}
+              settlementId={item.settlement_id}
+              index={i}
+              onSelect={() => onSelectKey(item.cognition_key)}
+            />
+          ))}
+        </div>
+      )}
+    </>
+  )
+}
+
+function CommitmentsSubtab({
+  agentId,
+  params,
+  onSelectKey,
+}: {
+  agentId: string
+  params: CognitionListParams
+  onSelectKey: (key: string) => void
+}) {
+  const query = useQuery({
+    queryKey: queryKeys.cognition.commitments(agentId, params as Record<string, unknown>),
+    queryFn: () => listCognitionCommitments(agentId, params),
+    refetchInterval: 30_000,
+  })
+
+  const items: readonly CommitmentItem[] = query.data?.items ?? []
+
+  return (
+    <>
+      {query.isLoading && <FacetLoading />}
+      {query.isError && <FacetError />}
+      {query.isSuccess && items.length === 0 && (
+        <EmptyState icon={<Lightbulb className="w-6 h-6" />} message="No commitments." />
+      )}
+      {query.isSuccess && items.length > 0 && (
+        <div className="space-y-3">
+          {items.map((item, i) => (
+            <CognitionCard
+              key={item.id}
+              cognitionKey={item.cognition_key}
+              content={item.content}
+              stanceOrStatus={item.status}
+              label="status"
+              salience={item.salience}
+              committedTime={item.committed_time}
+              requestId={item.request_id}
+              settlementId={item.settlement_id}
+              index={i}
+              onSelect={() => onSelectKey(item.cognition_key)}
+            />
+          ))}
+        </div>
+      )}
+    </>
+  )
+}
+
+function CognitionCard({
+  cognitionKey,
+  content,
+  stanceOrStatus,
+  label,
+  salience,
+  committedTime,
+  requestId,
+  settlementId,
+  index,
+  onSelect,
+}: {
+  cognitionKey: string
+  content: string
+  stanceOrStatus: string
+  label: string
+  salience: number | undefined
+  committedTime: number
+  requestId: string | null | undefined
+  settlementId: string | null | undefined
+  index: number
+  onSelect: () => void
+}) {
+  return (
+    <motion.button
+      type="button"
+      onClick={onSelect}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.04 }}
+      className="w-full text-left bg-white/50 border border-emerald-100/60 rounded-xl p-4 hover:bg-emerald-50/40 hover:border-emerald-200/80 transition-all duration-200 cursor-pointer"
+      data-testid="cognition-card"
+    >
+      <div className="flex items-center justify-between mb-2">
+        <code className="text-xs text-emerald-600/80 bg-emerald-50/60 px-2 py-0.5 rounded-lg truncate max-w-[60%]">
+          {cognitionKey}
+        </code>
+        <div className="flex items-center gap-1.5">
+          <StatusBadge status={stanceOrStatus} variant="info" />
+          {salience != null && (
+            <span className="text-[10px] text-gray-400 tabular-nums">
+              salience: {salience.toFixed(2)}
+            </span>
+          )}
+        </div>
+      </div>
+      <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap line-clamp-3">
+        {content}
+      </p>
+      <div className="flex items-center gap-3 mt-2 text-[10px] text-gray-400">
+        <span>
+          {label}: {stanceOrStatus}
+        </span>
+        <time dateTime={toIso(committedTime)} title={toIso(committedTime)}>
+          {formatTs(committedTime)}
+        </time>
+        {requestId && <span>req: {requestId.slice(0, 8)}…</span>}
+        {settlementId && <span>stl: {settlementId.slice(0, 8)}…</span>}
+      </div>
+    </motion.button>
   )
 }
 
