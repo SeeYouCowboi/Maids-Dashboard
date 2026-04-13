@@ -1,8 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'motion/react'
 import { AlertTriangle, ArrowRight, Share2, X } from 'lucide-react'
+import { Link } from 'react-router-dom'
 
 import { getGraphNodeDetail, listGraphNodeEdges } from '../api/graph'
+import { buildStudyUrl } from '../lib/studyUrls'
 import { LoadingSpinner } from './ui/LoadingSpinner'
 import { EmptyState } from './ui/EmptyState'
 import { StatusBadge } from './ui/StatusBadge'
@@ -47,6 +49,45 @@ const EDGE_GROUPS: readonly { key: string; label: string }[] = [
   { key: 'semantic', label: 'Semantic' },
   { key: 'memory', label: 'Memory' },
 ]
+
+const COGNITION_LINKED_RELATIONS = new Set([
+  'supports',
+  'conflicts_with',
+  'derived_from',
+  'resolved_by',
+  'downgraded_by',
+])
+
+function asNonEmptyString(value: unknown): string | null {
+  return typeof value === 'string' && value.length > 0 ? value : null
+}
+
+function readEdgeInteropMeta(edge: GraphEdgeItem): {
+  edgeType: string | null
+  relation: string | null
+  requestId: string | null
+  settlementId: string | null
+} {
+  const ext = edge as GraphEdgeItem & {
+    edge_type?: unknown
+    relation?: unknown
+    request_id?: unknown
+    settlement_id?: unknown
+    context?: {
+      request_id?: unknown
+      settlement_id?: unknown
+    }
+  }
+
+  const context = ext.context
+
+  return {
+    edgeType: asNonEmptyString(ext.edge_type) ?? asNonEmptyString(ext.relation_type),
+    relation: asNonEmptyString(ext.relation),
+    requestId: asNonEmptyString(context?.request_id) ?? asNonEmptyString(ext.request_id),
+    settlementId: asNonEmptyString(context?.settlement_id) ?? asNonEmptyString(ext.settlement_id),
+  }
+}
 
 function groupEdges(edges: readonly GraphEdgeItem[]): Record<string, GraphEdgeItem[]> {
   const groups: Record<string, GraphEdgeItem[]> = {}
@@ -301,27 +342,59 @@ export function GraphNodeDrawer({
                           <div className="space-y-1.5">
                             {items.map((edge, i) => {
                               const target = edge.from_ref === nodeRef ? edge.to_ref : edge.from_ref
+                              const interop = readEdgeInteropMeta(edge)
+                              const isCognitionLinked =
+                                interop.edgeType === 'logic' &&
+                                interop.relation != null &&
+                                COGNITION_LINKED_RELATIONS.has(interop.relation)
+
+                              const cognitionJumpUrl = isCognitionLinked
+                                ? buildStudyUrl({
+                                    agentId,
+                                    facet: 'cognition',
+                                    tab: 'assertions',
+                                    request_id: interop.requestId,
+                                    settlement_id: interop.settlementId,
+                                  })
+                                : null
+
                               return (
-                                <motion.button
+                                <motion.div
                                   key={`${edge.from_ref}-${edge.to_ref}-${String(i)}`}
-                                  type="button"
-                                  onClick={() => onDrillIn(target)}
                                   initial={{ opacity: 0, x: 8 }}
                                   animate={{ opacity: 1, x: 0 }}
                                   transition={{ delay: i * 0.03 }}
-                                  className="w-full text-left flex items-center gap-2 px-3 py-2 bg-white/50 border border-emerald-100/50 rounded-lg hover:bg-emerald-50/40 hover:border-emerald-200/80 transition-all duration-200 cursor-pointer"
-                                  data-testid="graph-edge-target"
+                                  className="w-full flex items-center gap-1.5"
                                 >
-                                  <ArrowRight className="w-3 h-3 text-emerald-400 shrink-0" />
-                                  <code className="text-xs text-emerald-600/80 truncate flex-1">
-                                    {target}
-                                  </code>
-                                  {edge.weight != null && (
-                                    <span className="text-[10px] text-gray-400 tabular-nums shrink-0">
-                                      w: {edge.weight.toFixed(2)}
-                                    </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => onDrillIn(target)}
+                                    className="flex-1 text-left flex items-center gap-2 px-3 py-2 bg-white/50 border border-emerald-100/50 rounded-lg hover:bg-emerald-50/40 hover:border-emerald-200/80 transition-all duration-200 cursor-pointer"
+                                    data-testid="graph-edge-target"
+                                  >
+                                    <ArrowRight className="w-3 h-3 text-emerald-400 shrink-0" />
+                                    <code className="text-xs text-emerald-600/80 truncate flex-1">
+                                      {target}
+                                    </code>
+                                    {edge.weight != null && (
+                                      <span className="text-[10px] text-gray-400 tabular-nums shrink-0">
+                                        w: {edge.weight.toFixed(2)}
+                                      </span>
+                                    )}
+                                  </button>
+
+                                  {cognitionJumpUrl != null && (
+                                    <Link
+                                      to={cognitionJumpUrl}
+                                      className="shrink-0 h-8 w-8 inline-flex items-center justify-center rounded-lg border border-teal-100 bg-teal-50/70 hover:bg-teal-100/80 text-teal-700 transition-colors"
+                                      title={`Jump to cognition${interop.relation ? ` (${interop.relation})` : ''}`}
+                                      aria-label="Jump to cognition"
+                                      data-testid="graph-edge-cognition-jump"
+                                    >
+                                      <span className="text-xs leading-none">🧠</span>
+                                    </Link>
                                   )}
-                                </motion.button>
+                                </motion.div>
                               )
                             })}
                           </div>
@@ -340,27 +413,59 @@ export function GraphNodeDrawer({
                           <div className="space-y-1.5">
                             {items.map((edge, i) => {
                               const target = edge.from_ref === nodeRef ? edge.to_ref : edge.from_ref
+                              const interop = readEdgeInteropMeta(edge)
+                              const isCognitionLinked =
+                                interop.edgeType === 'logic' &&
+                                interop.relation != null &&
+                                COGNITION_LINKED_RELATIONS.has(interop.relation)
+
+                              const cognitionJumpUrl = isCognitionLinked
+                                ? buildStudyUrl({
+                                    agentId,
+                                    facet: 'cognition',
+                                    tab: 'assertions',
+                                    request_id: interop.requestId,
+                                    settlement_id: interop.settlementId,
+                                  })
+                                : null
+
                               return (
-                                <motion.button
+                                <motion.div
                                   key={`${edge.from_ref}-${edge.to_ref}-${String(i)}`}
-                                  type="button"
-                                  onClick={() => onDrillIn(target)}
                                   initial={{ opacity: 0, x: 8 }}
                                   animate={{ opacity: 1, x: 0 }}
                                   transition={{ delay: i * 0.03 }}
-                                  className="w-full text-left flex items-center gap-2 px-3 py-2 bg-white/50 border border-gray-100/60 rounded-lg hover:bg-gray-50/60 hover:border-gray-200 transition-all duration-200 cursor-pointer"
-                                  data-testid="graph-edge-target"
+                                  className="w-full flex items-center gap-1.5"
                                 >
-                                  <ArrowRight className="w-3 h-3 text-gray-400 shrink-0" />
-                                  <code className="text-xs text-gray-600/80 truncate flex-1">
-                                    {target}
-                                  </code>
-                                  {edge.weight != null && (
-                                    <span className="text-[10px] text-gray-400 tabular-nums shrink-0">
-                                      w: {edge.weight.toFixed(2)}
-                                    </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => onDrillIn(target)}
+                                    className="flex-1 text-left flex items-center gap-2 px-3 py-2 bg-white/50 border border-gray-100/60 rounded-lg hover:bg-gray-50/60 hover:border-gray-200 transition-all duration-200 cursor-pointer"
+                                    data-testid="graph-edge-target"
+                                  >
+                                    <ArrowRight className="w-3 h-3 text-gray-400 shrink-0" />
+                                    <code className="text-xs text-gray-600/80 truncate flex-1">
+                                      {target}
+                                    </code>
+                                    {edge.weight != null && (
+                                      <span className="text-[10px] text-gray-400 tabular-nums shrink-0">
+                                        w: {edge.weight.toFixed(2)}
+                                      </span>
+                                    )}
+                                  </button>
+
+                                  {cognitionJumpUrl != null && (
+                                    <Link
+                                      to={cognitionJumpUrl}
+                                      className="shrink-0 h-8 w-8 inline-flex items-center justify-center rounded-lg border border-teal-100 bg-teal-50/70 hover:bg-teal-100/80 text-teal-700 transition-colors"
+                                      title={`Jump to cognition${interop.relation ? ` (${interop.relation})` : ''}`}
+                                      aria-label="Jump to cognition"
+                                      data-testid="graph-edge-cognition-jump"
+                                    >
+                                      <span className="text-xs leading-none">🧠</span>
+                                    </Link>
                                   )}
-                                </motion.button>
+                                </motion.div>
                               )
                             })}
                           </div>

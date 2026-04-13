@@ -874,6 +874,13 @@ function RetrievalTraceFacet({
   isOffline: boolean
 }) {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+
+  const retrievalSubtabRaw = searchParams.get('tab')
+  const retrievalSubtab: 'summary' | 'walk' =
+    retrievalSubtabRaw === 'walk' || retrievalSubtabRaw === 'summary'
+      ? retrievalSubtabRaw
+      : 'summary'
 
   /* Recent requests for this agent (shown when no request_id) */
   const recentQuery = useQuery({
@@ -965,6 +972,19 @@ function RetrievalTraceFacet({
 
   /* ── Has request_id → show trace detail ────────────────────────────── */
   const retrieval = traceQuery.data?.retrieval ?? null
+  const navigator = retrieval?.navigator ?? null
+
+  function selectRetrievalSubtab(nextTab: 'summary' | 'walk') {
+    if (!requestId) return
+    navigate(
+      buildStudyUrl({
+        agentId,
+        facet: 'retrieval-trace',
+        request_id: requestId,
+        tab: nextTab,
+      }),
+    )
+  }
 
   return (
     <GlassCard color="emerald">
@@ -988,6 +1008,33 @@ function RetrievalTraceFacet({
         </code>
       </div>
 
+      <div className="flex items-center gap-1 bg-white/30 backdrop-blur-sm rounded-xl p-0.5 border border-white/50 w-fit mb-4">
+        <button
+          type="button"
+          onClick={() => selectRetrievalSubtab('summary')}
+          className={`px-3 py-1.5 text-xs font-semibold rounded-[10px] transition-all duration-200 ${
+            retrievalSubtab === 'summary'
+              ? 'bg-white/80 text-emerald-600 shadow-sm'
+              : 'text-gray-500 hover:text-gray-700 hover:bg-white/30'
+          }`}
+          data-testid="retrieval-subtab-summary"
+        >
+          Summary
+        </button>
+        <button
+          type="button"
+          onClick={() => selectRetrievalSubtab('walk')}
+          className={`px-3 py-1.5 text-xs font-semibold rounded-[10px] transition-all duration-200 ${
+            retrievalSubtab === 'walk'
+              ? 'bg-white/80 text-emerald-600 shadow-sm'
+              : 'text-gray-500 hover:text-gray-700 hover:bg-white/30'
+          }`}
+          data-testid="retrieval-subtab-walk"
+        >
+          Walk
+        </button>
+      </div>
+
       {traceQuery.isLoading && <FacetLoading />}
       {traceQuery.isError && <FacetError />}
 
@@ -1005,107 +1052,212 @@ function RetrievalTraceFacet({
           animate={{ opacity: 1, y: 0 }}
           className="bg-white/50 border border-emerald-100/60 rounded-xl p-4 space-y-4"
         >
-          {/* Overview */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-            <div>
-              <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider">
-                Query
-              </span>
-              <p className="text-gray-700 mt-1">{retrieval.query_string}</p>
-            </div>
-            <div>
-              <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider">
-                Strategy
-              </span>
-              <p className="text-gray-700 mt-1">{retrieval.strategy}</p>
-            </div>
-          </div>
-
-          <div>
-            <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider">
-              Segments: {String(retrieval.segment_count)}
-            </span>
-          </div>
-
-          {/* Segments detail list */}
-          {retrieval.segments != null && retrieval.segments.length > 0 && (
-            <div>
-              <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider block mb-2">
-                Segment Details
-              </span>
-              <div className="space-y-2">
-                {retrieval.segments.map((seg, idx) => (
-                  <div
-                    key={`${seg.source}-${String(idx)}`}
-                    className="bg-emerald-50/40 border border-emerald-100/50 rounded-lg p-3"
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-semibold text-emerald-700">{seg.source}</span>
-                      {seg.score != null && (
-                        <span className="text-[10px] text-gray-400 tabular-nums">
-                          score: {seg.score.toFixed(3)}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-gray-600 leading-relaxed">
-                      {seg.content.length > 200 ? `${seg.content.slice(0, 200)}…` : seg.content}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Narrative facets */}
-          {retrieval.narrative_facets_used.length > 0 && (
-            <div>
-              <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider block mb-1">
-                Narrative Facets
-              </span>
-              <div className="flex flex-wrap gap-1.5">
-                {retrieval.narrative_facets_used.map((f) => (
-                  <span
-                    key={f}
-                    className="text-xs bg-emerald-50/80 text-emerald-600 px-2 py-0.5 rounded-lg border border-emerald-100"
-                  >
-                    {f}
+          {retrievalSubtab === 'summary' && (
+            <>
+              {/* Overview */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                <div>
+                  <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider">
+                    Query
                   </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Cognition facets */}
-          {retrieval.cognition_facets_used.length > 0 && (
-            <div>
-              <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider block mb-1">
-                Cognition Facets
-              </span>
-              <div className="flex flex-wrap gap-1.5">
-                {retrieval.cognition_facets_used.map((f) => (
-                  <span
-                    key={f}
-                    className="text-xs bg-teal-50/80 text-teal-600 px-2 py-0.5 rounded-lg border border-teal-100"
-                  >
-                    {f}
+                  <p className="text-gray-700 mt-1">{retrieval.query_string}</p>
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider">
+                    Strategy
                   </span>
-                ))}
+                  <p className="text-gray-700 mt-1">{retrieval.strategy}</p>
+                </div>
               </div>
-            </div>
-          )}
 
-          {/* Navigator available indicator */}
-          {retrieval.navigator != null && (
-            <div className="bg-teal-50/50 border border-teal-100/60 rounded-lg p-3">
-              <div className="flex items-center gap-2">
-                <MapPin className="w-3.5 h-3.5 text-teal-500" />
-                <span className="text-xs font-semibold text-teal-600">Navigator available</span>
-                <span className="text-[10px] text-gray-400">
-                  {String(retrieval.navigator.steps.length)} steps ·{' '}
-                  {String(retrieval.navigator.final_selection.length)} selected
+              <div>
+                <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider">
+                  Segments: {String(retrieval.segment_count)}
                 </span>
               </div>
-            </div>
+
+              {/* Segments detail list */}
+              {retrieval.segments != null && retrieval.segments.length > 0 && (
+                <div>
+                  <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider block mb-2">
+                    Segment Details
+                  </span>
+                  <div className="space-y-2">
+                    {retrieval.segments.map((seg, idx) => (
+                      <div
+                        key={`${seg.source}-${String(idx)}`}
+                        className="bg-emerald-50/40 border border-emerald-100/50 rounded-lg p-3"
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-semibold text-emerald-700">
+                            {seg.source}
+                          </span>
+                          {seg.score != null && (
+                            <span className="text-[10px] text-gray-400 tabular-nums">
+                              score: {seg.score.toFixed(3)}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-600 leading-relaxed">
+                          {seg.content.length > 200 ? `${seg.content.slice(0, 200)}…` : seg.content}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Narrative facets */}
+              {retrieval.narrative_facets_used.length > 0 && (
+                <div>
+                  <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider block mb-1">
+                    Narrative Facets
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {retrieval.narrative_facets_used.map((f) => (
+                      <span
+                        key={f}
+                        className="text-xs bg-emerald-50/80 text-emerald-600 px-2 py-0.5 rounded-lg border border-emerald-100"
+                      >
+                        {f}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Cognition facets */}
+              {retrieval.cognition_facets_used.length > 0 && (
+                <div>
+                  <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider block mb-1">
+                    Cognition Facets
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {retrieval.cognition_facets_used.map((f) => (
+                      <span
+                        key={f}
+                        className="text-xs bg-teal-50/80 text-teal-600 px-2 py-0.5 rounded-lg border border-teal-100"
+                      >
+                        {f}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Navigator available indicator */}
+              {navigator != null && (
+                <div className="bg-teal-50/50 border border-teal-100/60 rounded-lg p-3">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-3.5 h-3.5 text-teal-500" />
+                    <span className="text-xs font-semibold text-teal-600">Navigator available</span>
+                    <span className="text-[10px] text-gray-400">
+                      {String(navigator.steps.length)} steps ·{' '}
+                      {String(navigator.final_selection.length)} selected
+                    </span>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {retrievalSubtab === 'walk' && (
+            <>
+              {navigator == null ? (
+                <div className="py-4">
+                  <EmptyState
+                    icon={<MapPin className="w-5 h-5" />}
+                    message="No navigator data available"
+                  />
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div>
+                    <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider block mb-2">
+                      Seeds
+                    </span>
+                    {navigator.seeds.length > 0 ? (
+                      <div className="flex flex-wrap gap-1.5">
+                        {navigator.seeds.map((seed) => (
+                          <code
+                            key={seed}
+                            className="text-xs text-emerald-600 bg-emerald-50/80 px-2 py-0.5 rounded-lg border border-emerald-100"
+                          >
+                            {seed}
+                          </code>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-400">No seeds recorded.</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider block mb-2">
+                      Visited Steps
+                    </span>
+                    {navigator.steps.length > 0 ? (
+                      <ol className="space-y-2 list-decimal list-inside">
+                        {navigator.steps.map((step, idx) => (
+                          <li
+                            key={`${step.visited_ref}-${String(idx)}`}
+                            className="bg-white/50 border border-emerald-100/60 rounded-lg p-3"
+                          >
+                            <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                              <span className="text-[10px] text-gray-400">
+                                depth: {String(step.depth)}
+                              </span>
+                              <code className="text-xs text-emerald-700 bg-emerald-50/70 px-1.5 py-0.5 rounded">
+                                {step.visited_ref}
+                              </code>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2 text-[10px] text-gray-500">
+                              {step.via_ref && (
+                                <span>
+                                  via_ref:{' '}
+                                  <code className="text-[10px] text-teal-600 bg-teal-50/70 px-1 py-0.5 rounded">
+                                    {step.via_ref}
+                                  </code>
+                                </span>
+                              )}
+                              {step.via_relation && <span>via_relation: {step.via_relation}</span>}
+                              {step.score != null && (
+                                <span className="tabular-nums">score: {step.score.toFixed(3)}</span>
+                              )}
+                              {step.pruned !== undefined && (
+                                <span>pruned: {step.pruned ?? 'null'}</span>
+                              )}
+                            </div>
+                          </li>
+                        ))}
+                      </ol>
+                    ) : (
+                      <p className="text-xs text-gray-400">No walk steps recorded.</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider block mb-2">
+                      Final Selection
+                    </span>
+                    {navigator.final_selection.length > 0 ? (
+                      <div className="flex flex-wrap gap-1.5">
+                        {navigator.final_selection.map((ref) => (
+                          <code
+                            key={ref}
+                            className="text-xs text-white bg-gradient-to-r from-emerald-500 to-teal-500 px-2 py-0.5 rounded-lg"
+                          >
+                            {ref}
+                          </code>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-400">No final selections recorded.</p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </motion.div>
       )}
@@ -1388,6 +1540,13 @@ function CognitionFacet({
   )
 }
 
+function readEntityRefs(item: unknown): string[] {
+  if (item == null || typeof item !== 'object') return []
+  const refs = (item as { entity_refs?: unknown }).entity_refs
+  if (!Array.isArray(refs)) return []
+  return refs.filter((ref): ref is string => typeof ref === 'string' && ref.length > 0)
+}
+
 function AssertionsSubtab({
   agentId,
   params,
@@ -1425,7 +1584,9 @@ function AssertionsSubtab({
               committedTime={item.committed_time}
               requestId={item.request_id}
               settlementId={item.settlement_id}
+              entityRefs={readEntityRefs(item)}
               index={i}
+              agentId={agentId}
               onSelect={() => onSelectKey(item.cognition_key)}
             />
           ))}
@@ -1472,7 +1633,9 @@ function EvaluationsSubtab({
               committedTime={item.committed_time}
               requestId={item.request_id}
               settlementId={item.settlement_id}
+              entityRefs={readEntityRefs(item)}
               index={i}
+              agentId={agentId}
               onSelect={() => onSelectKey(item.cognition_key)}
             />
           ))}
@@ -1519,7 +1682,9 @@ function CommitmentsSubtab({
               committedTime={item.committed_time}
               requestId={item.request_id}
               settlementId={item.settlement_id}
+              entityRefs={readEntityRefs(item)}
               index={i}
+              agentId={agentId}
               onSelect={() => onSelectKey(item.cognition_key)}
             />
           ))}
@@ -1530,6 +1695,7 @@ function CommitmentsSubtab({
 }
 
 function CognitionCard({
+  agentId,
   cognitionKey,
   content,
   stanceOrStatus,
@@ -1538,9 +1704,11 @@ function CognitionCard({
   committedTime,
   requestId,
   settlementId,
+  entityRefs,
   index,
   onSelect,
 }: {
+  agentId: string
   cognitionKey: string
   content: string
   stanceOrStatus: string
@@ -1549,46 +1717,67 @@ function CognitionCard({
   committedTime: number
   requestId: string | null | undefined
   settlementId: string | null | undefined
+  entityRefs?: readonly string[]
   index: number
   onSelect: () => void
 }) {
   return (
-    <motion.button
-      type="button"
-      onClick={onSelect}
+    <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.04 }}
       className="w-full text-left bg-white/50 border border-emerald-100/60 rounded-xl p-4 hover:bg-emerald-50/40 hover:border-emerald-200/80 transition-all duration-200 cursor-pointer"
       data-testid="cognition-card"
     >
-      <div className="flex items-center justify-between mb-2">
-        <code className="text-xs text-emerald-600/80 bg-emerald-50/60 px-2 py-0.5 rounded-lg truncate max-w-[60%]">
-          {cognitionKey}
-        </code>
-        <div className="flex items-center gap-1.5">
-          <StatusBadge status={stanceOrStatus} variant="info" />
-          {salience != null && (
-            <span className="text-[10px] text-gray-400 tabular-nums">
-              salience: {salience.toFixed(2)}
-            </span>
-          )}
+      <button type="button" onClick={onSelect} className="w-full text-left cursor-pointer">
+        <div className="flex items-center justify-between mb-2">
+          <code className="text-xs text-emerald-600/80 bg-emerald-50/60 px-2 py-0.5 rounded-lg truncate max-w-[60%]">
+            {cognitionKey}
+          </code>
+          <div className="flex items-center gap-1.5">
+            <StatusBadge status={stanceOrStatus} variant="info" />
+            {salience != null && (
+              <span className="text-[10px] text-gray-400 tabular-nums">
+                salience: {salience.toFixed(2)}
+              </span>
+            )}
+          </div>
         </div>
-      </div>
-      <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap line-clamp-3">
-        {content}
-      </p>
-      <div className="flex items-center gap-3 mt-2 text-[10px] text-gray-400">
-        <span>
-          {label}: {stanceOrStatus}
-        </span>
-        <time dateTime={toIso(committedTime)} title={toIso(committedTime)}>
-          {formatTs(committedTime)}
-        </time>
-        {requestId && <span>req: {requestId.slice(0, 8)}…</span>}
-        {settlementId && <span>stl: {settlementId.slice(0, 8)}…</span>}
-      </div>
-    </motion.button>
+        <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap line-clamp-3">
+          {content}
+        </p>
+        <div className="flex items-center gap-3 mt-2 text-[10px] text-gray-400">
+          <span>
+            {label}: {stanceOrStatus}
+          </span>
+          <time dateTime={toIso(committedTime)} title={toIso(committedTime)}>
+            {formatTs(committedTime)}
+          </time>
+          {requestId && <span>req: {requestId.slice(0, 8)}…</span>}
+          {settlementId && <span>stl: {settlementId.slice(0, 8)}…</span>}
+        </div>
+      </button>
+
+      {entityRefs != null && entityRefs.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mt-2.5" data-testid="cognition-entity-refs">
+          {entityRefs.map((entityRef) => {
+            const chipText =
+              entityRef.length > 28 ? `${entityRef.slice(0, 16)}…${entityRef.slice(-8)}` : entityRef
+
+            return (
+              <Link
+                key={`${cognitionKey}-${entityRef}`}
+                to={buildStudyUrl({ agentId, facet: 'graph', node_ref: entityRef })}
+                className="inline-flex items-center text-[10px] font-medium text-teal-700 bg-teal-50/80 hover:bg-teal-100/80 border border-teal-100 rounded-full px-2 py-0.5 transition-colors"
+                title={entityRef}
+              >
+                {chipText}
+              </Link>
+            )
+          })}
+        </div>
+      )}
+    </motion.div>
   )
 }
 
