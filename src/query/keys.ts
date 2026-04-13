@@ -73,6 +73,15 @@ export const queryKeys = {
     history: (agentId: string, key: string) =>
       [...queryKeys.cognition.all, 'history', agentId, key] as const,
   },
+  graph: {
+    all: ['graph'] as const,
+    nodes: (agentId: string, params?: Record<string, unknown>) =>
+      [...queryKeys.graph.all, 'nodes', agentId, params] as const,
+    nodeDetail: (agentId: string, nodeRef: string) =>
+      [...queryKeys.graph.all, 'node-detail', agentId, nodeRef] as const,
+    nodeEdges: (agentId: string, nodeRef: string, params?: Record<string, unknown>) =>
+      [...queryKeys.graph.all, 'node-edges', agentId, nodeRef, params] as const,
+  },
   health: {
     healthz: ['healthz'] as const,
     readyz: ['readyz'] as const,

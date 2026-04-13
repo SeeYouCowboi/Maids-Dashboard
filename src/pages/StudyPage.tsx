@@ -3,6 +3,7 @@ import { Link, useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'motion/react'
 import {
+  AlertTriangle,
   BookOpen,
   Brain,
   ChevronDown,
@@ -17,6 +18,7 @@ import {
   Pin,
   RefreshCw,
   Search,
+  Share2,
 } from 'lucide-react'
 
 import { listAgents } from '../api/agents'
@@ -26,6 +28,7 @@ import {
   listCognitionEvaluations,
 } from '../api/cognition'
 import type { CognitionListParams } from '../api/cognition'
+import { listGraphNodes } from '../api/graph'
 import {
   listCoreMemoryBlocks,
   listEpisodes,
@@ -35,6 +38,7 @@ import {
 } from '../api/memory'
 import { getRetrievalTrace, listRecentRequests } from '../api/study'
 import { CognitionHistoryDrawer } from '../components/CognitionHistoryDrawer'
+import { GraphNodeDrawer } from '../components/GraphNodeDrawer'
 import { GlassCard } from '../components/ui/GlassCard'
 import { EmptyState } from '../components/ui/EmptyState'
 import { LoadingSpinner } from '../components/ui/LoadingSpinner'
@@ -46,6 +50,7 @@ import type {
   CommitmentItem,
   CoreMemoryBlock,
   EpisodeItem,
+  EventNodeItem,
   EvaluationItem,
   NarrativeItem,
   PinnedSummary,
@@ -68,6 +73,7 @@ const FACETS = [
   { key: 'pinned-summaries', label: 'Pinned Summaries', icon: Pin },
   { key: 'retrieval-trace', label: 'Retrieval Trace', icon: Search },
   { key: 'cognition', label: 'Cognition', icon: Lightbulb },
+  { key: 'graph', label: 'Graph', icon: Share2 },
 ] as const
 
 const VALID_FACETS = new Set<string>(FACETS.map((f) => f.key))
@@ -352,6 +358,8 @@ function FacetContent({
           isOffline={isOffline}
         />
       )
+    case 'graph':
+      return <GraphFacet agentId={agentId} isOffline={isOffline} />
   }
 }
 
@@ -1102,6 +1110,148 @@ function RetrievalTraceFacet({
         </motion.div>
       )}
     </GlassCard>
+  )
+}
+
+/* ── Graph facet ───────────────────────────────────────────────────────── */
+
+function GraphFacet({ agentId, isOffline }: { agentId: string; isOffline: boolean }) {
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const nodeRef = searchParams.get('node_ref')
+
+  const query = useQuery({
+    queryKey: queryKeys.graph.nodes(agentId, { limit: 50 }),
+    queryFn: () => listGraphNodes(agentId, { limit: 50 }),
+    refetchInterval: 30_000,
+    retry: (failCount, error) => {
+      if (error && 'status' in error && (error as { status: number }).status === 501) return false
+      return failCount < 2
+    },
+  })
+
+  const items: readonly EventNodeItem[] = query.data?.items ?? []
+  const degraded = query.data?.viewer_context_degraded === true
+  const sorted = [...items].sort((a, b) => b.timestamp - a.timestamp)
+
+  const is501 =
+    query.isError &&
+    query.error &&
+    'status' in query.error &&
+    (query.error as { status: number }).status === 501
+
+  function openNode(ref: string) {
+    navigate(buildStudyUrl({ agentId, facet: 'graph', node_ref: ref }))
+  }
+
+  function closeDrawer() {
+    navigate(buildStudyUrl({ agentId, facet: 'graph' }))
+  }
+
+  function drillIn(targetRef: string) {
+    navigate(buildStudyUrl({ agentId, facet: 'graph', node_ref: targetRef }))
+  }
+
+  return (
+    <>
+      <GlassCard color="emerald">
+        <FacetHeader
+          icon={<Share2 className="w-4 h-4" />}
+          label="Graph"
+          count={items.length > 0 ? items.length : undefined}
+          onRefresh={() => void query.refetch()}
+          isOffline={isOffline}
+        />
+
+        {degraded && (
+          <div
+            className="flex items-center gap-2 mb-4 px-3 py-2 bg-amber-50/80 border border-amber-200/60 rounded-xl text-xs text-amber-700"
+            data-testid="graph-degraded-banner"
+          >
+            <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+            <span>
+              Viewer context degraded — visibility may be limited because session context is
+              unavailable.
+            </span>
+          </div>
+        )}
+
+        {query.isLoading && <FacetLoading />}
+
+        {is501 && (
+          <EmptyState
+            icon={<Share2 className="w-6 h-6" />}
+            message="Graph inspection unavailable for this runtime mode."
+          />
+        )}
+
+        {query.isError && !is501 && <FacetError />}
+
+        {query.isSuccess && sorted.length === 0 && (
+          <EmptyState icon={<Share2 className="w-6 h-6" />} message="No graph nodes recorded." />
+        )}
+
+        {query.isSuccess && sorted.length > 0 && (
+          <div className="space-y-3" data-testid="graph-node-list">
+            {sorted.map((node, i) => (
+              <motion.button
+                key={node.node_ref}
+                type="button"
+                onClick={() => openNode(node.node_ref)}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.04 }}
+                className="w-full text-left bg-white/50 border border-emerald-100/60 rounded-xl p-4 hover:bg-emerald-50/40 hover:border-emerald-200/80 transition-all duration-200 cursor-pointer"
+                data-testid="graph-node-card"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <code className="text-xs text-emerald-600/80 bg-emerald-50/60 px-2 py-0.5 rounded-lg truncate max-w-[50%]">
+                    {node.node_ref}
+                  </code>
+                  <div className="flex items-center gap-1.5">
+                    <StatusBadge status={node.category} variant="info" />
+                    <StatusBadge status={node.visibility_scope} variant="neutral" />
+                  </div>
+                </div>
+
+                {node.summary && (
+                  <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap line-clamp-3 mb-2">
+                    {node.summary}
+                  </p>
+                )}
+
+                <div className="flex items-center gap-3 text-[10px] text-gray-400 flex-wrap">
+                  <time dateTime={toIso(node.timestamp)} title={toIso(node.timestamp)}>
+                    {formatTs(node.timestamp)}
+                  </time>
+                  {node.participants && node.participants.length > 0 && (
+                    <span>{node.participants.join(', ')}</span>
+                  )}
+                  {node.salience != null && (
+                    <span className="tabular-nums">salience: {node.salience.toFixed(2)}</span>
+                  )}
+                  {node.centrality != null && (
+                    <span className="tabular-nums">centrality: {node.centrality.toFixed(2)}</span>
+                  )}
+                  {node.bridge_score != null && (
+                    <span className="tabular-nums">bridge: {node.bridge_score.toFixed(2)}</span>
+                  )}
+                </div>
+              </motion.button>
+            ))}
+          </div>
+        )}
+      </GlassCard>
+
+      {nodeRef != null && (
+        <GraphNodeDrawer
+          agentId={agentId}
+          nodeRef={nodeRef}
+          onClose={closeDrawer}
+          onDrillIn={drillIn}
+        />
+      )}
+    </>
   )
 }
 
