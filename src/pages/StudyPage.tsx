@@ -43,6 +43,8 @@ import type {
 } from '../contracts'
 import { useOffline } from '../hooks/OfflineContext'
 import { getLocal, setLocal } from '../lib/storage'
+import { buildStudyUrl } from '../lib/studyUrls'
+import type { FacetKey } from '../lib/studyUrls'
 import { queryKeys } from '../query/keys'
 
 /* ── Facet definitions ─────────────────────────────────────────────────── */
@@ -55,8 +57,6 @@ const FACETS = [
   { key: 'pinned-summaries', label: 'Pinned Summaries', icon: Pin },
   { key: 'retrieval-trace', label: 'Retrieval Trace', icon: Search },
 ] as const
-
-type FacetKey = (typeof FACETS)[number]['key']
 
 const VALID_FACETS = new Set<string>(FACETS.map((f) => f.key))
 
@@ -79,39 +79,6 @@ function formatTs(epochMs: number): string {
 /** Return ISO-8601 string for use in `dateTime` / `title` attributes. */
 function toIso(epochMs: number): string {
   return new Date(epochMs).toISOString()
-}
-
-/* ── Study URL builder ─────────────────────────────────────────────────── */
-
-export interface StudyUrlParams {
-  agentId: string
-  facet?: FacetKey
-  request_id?: string | null
-  settlement_id?: string | null
-  tab?: string | null
-  node_ref?: string | null
-  direction?: string | null
-  rp_only?: boolean | null
-}
-
-/**
- * Build a canonical Study deep-link. All future Study navigation MUST use
- * this helper — no hand-rolled URL strings.
- */
-export function buildStudyUrl(params: StudyUrlParams): string {
-  const facet = params.facet ?? 'episodes'
-  const base = `/study/${encodeURIComponent(params.agentId)}/${facet}`
-
-  const qp = new URLSearchParams()
-  if (params.request_id) qp.set('request_id', params.request_id)
-  if (params.settlement_id) qp.set('settlement_id', params.settlement_id)
-  if (params.tab) qp.set('tab', params.tab)
-  if (params.node_ref) qp.set('node_ref', params.node_ref)
-  if (params.direction) qp.set('direction', params.direction)
-  if (params.rp_only === true) qp.set('rp_only', '1')
-
-  const qs = qp.toString()
-  return qs.length > 0 ? `${base}?${qs}` : base
 }
 
 /* ── RP-only storage ───────────────────────────────────────────────────── */

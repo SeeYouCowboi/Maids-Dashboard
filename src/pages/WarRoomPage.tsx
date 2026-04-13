@@ -13,7 +13,7 @@ import {
   ScrollText,
   Shield,
 } from 'lucide-react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 
 import { getLogs, getRequestDiagnose, getRequestChunks, getRequestTrace } from '../api/requests'
 import { getStateSnapshot, listMaidenDecisions } from '../api/state'
@@ -24,6 +24,7 @@ import { PageHeader } from '../components/ui/PageHeader'
 import { StatusBadge } from '../components/ui/StatusBadge'
 import type { MaidenDecisionItem, StateSnapshotResponse } from '../contracts'
 import { useOffline } from '../hooks/OfflineContext'
+import { buildStudyUrl } from '../lib/studyUrls'
 import { queryKeys } from '../query/keys'
 
 /* ── Constants ─────────────────────────────────────────────────────────── */
@@ -183,12 +184,12 @@ export default function WarRoomPage() {
     [allEntries],
   )
 
-  const failedRequestIds = useMemo(() => {
-    const ids = new Set<string>()
+  const failedRequests = useMemo(() => {
+    const seen = new Map<string, string>()
     for (const e of errorEntries) {
-      ids.add(e.request_id)
+      if (!seen.has(e.request_id)) seen.set(e.request_id, e.agent_id)
     }
-    return [...ids]
+    return [...seen.entries()].map(([request_id, agent_id]) => ({ request_id, agent_id }))
   }, [errorEntries])
 
   return (
@@ -222,7 +223,7 @@ export default function WarRoomPage() {
           logsQuery={logsQuery}
           allEntries={allEntries}
           errorEntries={errorEntries}
-          failedRequestIds={failedRequestIds}
+          failedRequests={failedRequests}
           highlightedRequestId={highlightedRequestId}
         />
       )}
@@ -249,7 +250,7 @@ type EventStreamProps = {
   logsQuery: ReturnType<typeof useQuery<LogsResponse>>
   allEntries: LogEntryRow[]
   errorEntries: LogEntryRow[]
-  failedRequestIds: string[]
+  failedRequests: { request_id: string; agent_id: string }[]
   highlightedRequestId: string | null
 }
 
@@ -259,7 +260,7 @@ function EventStreamZone({
   logsQuery,
   allEntries,
   errorEntries,
-  failedRequestIds,
+  failedRequests,
   highlightedRequestId,
 }: EventStreamProps) {
   return (
@@ -305,7 +306,7 @@ function EventStreamZone({
           {subTab === 'errors' && <LogsTable entries={errorEntries} />}
           {subTab === 'failed-requests' && (
             <FailedRequestsList
-              requestIds={failedRequestIds}
+              requests={failedRequests}
               highlightedRequestId={highlightedRequestId}
             />
           )}
@@ -369,13 +370,13 @@ function LogsTable({ entries }: { entries: LogEntryRow[] }) {
 /* ── Failed Requests List ──────────────────────────────────────────────── */
 
 function FailedRequestsList({
-  requestIds,
+  requests,
   highlightedRequestId,
 }: {
-  requestIds: string[]
+  requests: { request_id: string; agent_id: string }[]
   highlightedRequestId: string | null
 }) {
-  if (requestIds.length === 0) {
+  if (requests.length === 0) {
     return (
       <GlassCard color="red">
         <EmptyState icon={<FileWarning className="w-8 h-8" />} message="No failed requests found" />
@@ -386,12 +387,13 @@ function FailedRequestsList({
   return (
     <GlassCard color="red">
       <div className="space-y-2">
-        {requestIds.map((id, i) => (
+        {requests.map((req, i) => (
           <FailedRequestRow
-            key={id}
-            requestId={id}
+            key={req.request_id}
+            requestId={req.request_id}
+            agentId={req.agent_id}
             index={i}
-            isHighlighted={highlightedRequestId === id}
+            isHighlighted={highlightedRequestId === req.request_id}
           />
         ))}
       </div>
@@ -401,10 +403,12 @@ function FailedRequestsList({
 
 function FailedRequestRow({
   requestId,
+  agentId,
   index,
   isHighlighted,
 }: {
   requestId: string
+  agentId: string
   index: number
   isHighlighted: boolean
 }) {
@@ -431,6 +435,20 @@ function FailedRequestRow({
         )}
         <span className="font-mono text-sm text-gray-700">{requestId}</span>
         <StatusBadge status="error" variant="error" />
+        {agentId && (
+          <Link
+            to={buildStudyUrl({
+              agentId,
+              facet: 'retrieval-trace',
+              request_id: requestId,
+            })}
+            onClick={(e) => e.stopPropagation()}
+            className="ml-auto text-[11px] text-teal-600 hover:text-teal-800 transition-colors shrink-0"
+            data-testid="war-room-study-link"
+          >
+            🔍 Study
+          </Link>
+        )}
       </button>
 
       <AnimatePresence>

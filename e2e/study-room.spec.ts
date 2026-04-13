@@ -184,3 +184,71 @@ test.describe('Study Room — Retrieval Trace facet', () => {
     })
   })
 })
+
+test.describe('Grand Hall → Study retrieval deep link', () => {
+  test('Assistant messages with request_id show Retrieval Trace link', async ({ page }) => {
+    await login(page)
+
+    const sessionsResponse = await page.request.get('/api/v1/sessions')
+    const sessionsBody = (await sessionsResponse.json()) as { items?: { session_id: string }[] }
+    const firstSession = sessionsBody.items?.[0]
+
+    if (!firstSession) {
+      test.skip()
+      return
+    }
+
+    await page.goto(`/grand-hall/${firstSession.session_id}`)
+    await page.waitForLoadState('networkidle', { timeout: 15_000 }).catch(() => {})
+    await page.waitForTimeout(800)
+
+    const retrievalLinks = page.locator('[data-testid="grand-hall-retrieval-link"]')
+    const linkCount = await retrievalLinks.count()
+
+    if (linkCount > 0) {
+      const href = await retrievalLinks.first().getAttribute('href')
+      expect(href).toContain('/study/')
+      expect(href).toContain('retrieval-trace')
+      expect(href).toContain('request_id=')
+
+      await retrievalLinks.first().click()
+      await page.waitForURL(/\/study\/.*retrieval-trace/, { timeout: 10_000 })
+      expect(page.url()).toContain('retrieval-trace')
+      expect(page.url()).toContain('request_id=')
+    }
+
+    await page.screenshot({
+      path: 'e2e/screenshots/grand-hall-retrieval-link.png',
+      fullPage: true,
+    })
+  })
+})
+
+test.describe('War Room → Study retrieval deep link', () => {
+  test('Failed request rows show Study jump link when agent_id present', async ({ page }) => {
+    await login(page)
+    await page.goto('/war-room?tab=event-stream&subtab=failed-requests')
+    await page.waitForLoadState('networkidle', { timeout: 15_000 }).catch(() => {})
+    await page.waitForTimeout(800)
+
+    const studyLinks = page.locator('[data-testid="war-room-study-link"]')
+    const linkCount = await studyLinks.count()
+
+    if (linkCount > 0) {
+      const href = await studyLinks.first().getAttribute('href')
+      expect(href).toContain('/study/')
+      expect(href).toContain('retrieval-trace')
+      expect(href).toContain('request_id=')
+
+      await studyLinks.first().click()
+      await page.waitForURL(/\/study\/.*retrieval-trace/, { timeout: 10_000 })
+      expect(page.url()).toContain('retrieval-trace')
+      expect(page.url()).toContain('request_id=')
+    }
+
+    await page.screenshot({
+      path: 'e2e/screenshots/war-room-study-link.png',
+      fullPage: true,
+    })
+  })
+})

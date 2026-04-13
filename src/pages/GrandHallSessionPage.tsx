@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'motion/react'
 import { ArrowLeft, MessageSquare, Brain, XCircle, AlertTriangle, RefreshCw } from 'lucide-react'
@@ -21,6 +21,7 @@ import { listAgents } from '../api/agents'
 import { queryKeys } from '../query/keys'
 import { ApiError } from '../api/client'
 import { useOffline } from '../hooks/OfflineContext'
+import { buildStudyUrl } from '../lib/studyUrls'
 
 type DetailTab = 'transcript' | 'memory'
 
@@ -84,15 +85,17 @@ export default function GrandHallSessionPage() {
   })
 
   // Clear optimistic user bubble once the real transcript entry arrives
-  const messageEntries = (transcriptQuery.data?.entries as readonly TranscriptEntry[] | undefined)
-    ?.filter((e) => e.record_type === 'message') ?? []
+  const messageEntries =
+    (transcriptQuery.data?.entries as readonly TranscriptEntry[] | undefined)?.filter(
+      (e) => e.record_type === 'message',
+    ) ?? []
 
   useEffect(() => {
     if (!pendingUserMsg) return
     const last = [...messageEntries].reverse().find((e) => e.actor === 'user')
     if (last?.text === pendingUserMsg) {
       setPendingUserMsg(null)
-      setLiveText('')   // clear live bubble once real entries land — no flash
+      setLiveText('') // clear live bubble once real entries land — no flash
       setLiveActive(false)
     }
   }, [messageEntries, pendingUserMsg])
@@ -152,7 +155,6 @@ export default function GrandHallSessionPage() {
 
   return (
     <div className="h-full flex flex-col gap-0">
-
       {/* ── Compact top bar ─────────────────────────────────────────── */}
       <div className="shrink-0 flex items-center gap-2 px-4 py-2.5 border-b border-white/40 bg-white/10 backdrop-blur-sm">
         {/* Back */}
@@ -278,7 +280,6 @@ export default function GrandHallSessionPage() {
 
       {/* ── Content (card fills height; scroll is inside the card) ──── */}
       <div className="flex-1 min-h-0 flex flex-col px-4 pt-2 pb-2">
-
         {activeTab === 'transcript' && (
           <GlassCard color="blue" className="flex-1 min-h-0 flex flex-col !p-0 overflow-hidden">
             {transcriptQuery.isLoading && (
@@ -331,6 +332,19 @@ export default function GrandHallSessionPage() {
                         >
                           {entry.text}
                         </p>
+                        {entry.actor !== 'user' && entry.request_id && session?.agent_id && (
+                          <Link
+                            to={buildStudyUrl({
+                              agentId: session.agent_id,
+                              facet: 'retrieval-trace',
+                              request_id: entry.request_id,
+                            })}
+                            className="inline-flex items-center gap-1 mt-1.5 text-[11px] text-teal-600 hover:text-teal-800 transition-colors"
+                            data-testid="grand-hall-retrieval-link"
+                          >
+                            🔍 Retrieval Trace
+                          </Link>
+                        )}
                       </motion.div>
                     ))}
 
@@ -416,7 +430,11 @@ export default function GrandHallSessionPage() {
 
             {/* Scrollable body */}
             <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-4 space-y-3">
-              {memoryQuery.isLoading && <div className="py-8 flex justify-center"><LoadingSpinner /></div>}
+              {memoryQuery.isLoading && (
+                <div className="py-8 flex justify-center">
+                  <LoadingSpinner />
+                </div>
+              )}
 
               {memoryQuery.isError && (
                 <div className="text-xs text-red-500 py-4">
