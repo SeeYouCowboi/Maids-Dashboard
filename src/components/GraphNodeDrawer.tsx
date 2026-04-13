@@ -58,43 +58,16 @@ const COGNITION_LINKED_RELATIONS = new Set([
   'downgraded_by',
 ])
 
-function asNonEmptyString(value: unknown): string | null {
-  return typeof value === 'string' && value.length > 0 ? value : null
-}
-
-function readEdgeInteropMeta(edge: GraphEdgeItem): {
-  edgeType: string | null
-  relation: string | null
-  requestId: string | null
-  settlementId: string | null
-} {
-  const ext = edge as GraphEdgeItem & {
-    edge_type?: unknown
-    relation?: unknown
-    request_id?: unknown
-    settlement_id?: unknown
-    context?: {
-      request_id?: unknown
-      settlement_id?: unknown
-    }
+function groupEdges(
+  edges: readonly GraphEdgeItem[],
+): Record<'logic' | 'semantic' | 'memory', GraphEdgeItem[]> {
+  const groups: Record<'logic' | 'semantic' | 'memory', GraphEdgeItem[]> = {
+    logic: [],
+    semantic: [],
+    memory: [],
   }
-
-  const context = ext.context
-
-  return {
-    edgeType: asNonEmptyString(ext.edge_type) ?? asNonEmptyString(ext.relation_type),
-    relation: asNonEmptyString(ext.relation),
-    requestId: asNonEmptyString(context?.request_id) ?? asNonEmptyString(ext.request_id),
-    settlementId: asNonEmptyString(context?.settlement_id) ?? asNonEmptyString(ext.settlement_id),
-  }
-}
-
-function groupEdges(edges: readonly GraphEdgeItem[]): Record<string, GraphEdgeItem[]> {
-  const groups: Record<string, GraphEdgeItem[]> = {}
   for (const edge of edges) {
-    const key = edge.relation_type
-    if (!groups[key]) groups[key] = []
-    groups[key].push(edge)
+    groups[edge.layer].push(edge)
   }
   return groups
 }
@@ -331,30 +304,31 @@ export function GraphNodeDrawer({
                 {edgesQuery.isSuccess && edges.length > 0 && (
                   <div className="space-y-4">
                     {EDGE_GROUPS.map((group) => {
-                      const items = grouped[group.key]
-                      if (!items || items.length === 0) return null
+                      const items = grouped[group.key as 'logic' | 'semantic' | 'memory']
+                      if (items.length === 0) return null
                       return (
                         <div key={group.key}>
-                          <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider block mb-1.5">
+                          <span
+                            className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider block mb-1.5"
+                            data-testid={`graph-edge-group-${group.key}`}
+                          >
                             {group.label}{' '}
                             <span className="text-gray-300">({String(items.length)})</span>
                           </span>
                           <div className="space-y-1.5">
                             {items.map((edge, i) => {
                               const target = edge.from_ref === nodeRef ? edge.to_ref : edge.from_ref
-                              const interop = readEdgeInteropMeta(edge)
                               const isCognitionLinked =
-                                interop.edgeType === 'logic' &&
-                                interop.relation != null &&
-                                COGNITION_LINKED_RELATIONS.has(interop.relation)
+                                edge.layer === 'memory' &&
+                                COGNITION_LINKED_RELATIONS.has(edge.relation_type)
 
                               const cognitionJumpUrl = isCognitionLinked
                                 ? buildStudyUrl({
                                     agentId,
                                     facet: 'cognition',
                                     tab: 'assertions',
-                                    request_id: interop.requestId,
-                                    settlement_id: interop.settlementId,
+                                    request_id: edge.context?.request_id ?? null,
+                                    settlement_id: edge.context?.settlement_id ?? null,
                                   })
                                 : null
 
@@ -387,7 +361,7 @@ export function GraphNodeDrawer({
                                     <Link
                                       to={cognitionJumpUrl}
                                       className="shrink-0 h-8 w-8 inline-flex items-center justify-center rounded-lg border border-teal-100 bg-teal-50/70 hover:bg-teal-100/80 text-teal-700 transition-colors"
-                                      title={`Jump to cognition${interop.relation ? ` (${interop.relation})` : ''}`}
+                                      title={`Jump to cognition (${edge.relation_type})`}
                                       aria-label="Jump to cognition"
                                       data-testid="graph-edge-cognition-jump"
                                     >
@@ -401,76 +375,6 @@ export function GraphNodeDrawer({
                         </div>
                       )
                     })}
-
-                    {/* Edges that don't match known groups */}
-                    {Object.entries(grouped)
-                      .filter(([key]) => !EDGE_GROUPS.some((g) => g.key === key))
-                      .map(([key, items]) => (
-                        <div key={key}>
-                          <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider block mb-1.5">
-                            {key} <span className="text-gray-300">({String(items.length)})</span>
-                          </span>
-                          <div className="space-y-1.5">
-                            {items.map((edge, i) => {
-                              const target = edge.from_ref === nodeRef ? edge.to_ref : edge.from_ref
-                              const interop = readEdgeInteropMeta(edge)
-                              const isCognitionLinked =
-                                interop.edgeType === 'logic' &&
-                                interop.relation != null &&
-                                COGNITION_LINKED_RELATIONS.has(interop.relation)
-
-                              const cognitionJumpUrl = isCognitionLinked
-                                ? buildStudyUrl({
-                                    agentId,
-                                    facet: 'cognition',
-                                    tab: 'assertions',
-                                    request_id: interop.requestId,
-                                    settlement_id: interop.settlementId,
-                                  })
-                                : null
-
-                              return (
-                                <motion.div
-                                  key={`${edge.from_ref}-${edge.to_ref}-${String(i)}`}
-                                  initial={{ opacity: 0, x: 8 }}
-                                  animate={{ opacity: 1, x: 0 }}
-                                  transition={{ delay: i * 0.03 }}
-                                  className="w-full flex items-center gap-1.5"
-                                >
-                                  <button
-                                    type="button"
-                                    onClick={() => onDrillIn(target)}
-                                    className="flex-1 text-left flex items-center gap-2 px-3 py-2 bg-white/50 border border-gray-100/60 rounded-lg hover:bg-gray-50/60 hover:border-gray-200 transition-all duration-200 cursor-pointer"
-                                    data-testid="graph-edge-target"
-                                  >
-                                    <ArrowRight className="w-3 h-3 text-gray-400 shrink-0" />
-                                    <code className="text-xs text-gray-600/80 truncate flex-1">
-                                      {target}
-                                    </code>
-                                    {edge.weight != null && (
-                                      <span className="text-[10px] text-gray-400 tabular-nums shrink-0">
-                                        w: {edge.weight.toFixed(2)}
-                                      </span>
-                                    )}
-                                  </button>
-
-                                  {cognitionJumpUrl != null && (
-                                    <Link
-                                      to={cognitionJumpUrl}
-                                      className="shrink-0 h-8 w-8 inline-flex items-center justify-center rounded-lg border border-teal-100 bg-teal-50/70 hover:bg-teal-100/80 text-teal-700 transition-colors"
-                                      title={`Jump to cognition${interop.relation ? ` (${interop.relation})` : ''}`}
-                                      aria-label="Jump to cognition"
-                                      data-testid="graph-edge-cognition-jump"
-                                    >
-                                      <span className="text-xs leading-none">🧠</span>
-                                    </Link>
-                                  )}
-                                </motion.div>
-                              )
-                            })}
-                          </div>
-                        </div>
-                      ))}
                   </div>
                 )}
               </div>

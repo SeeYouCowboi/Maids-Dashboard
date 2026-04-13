@@ -22,7 +22,6 @@ export interface StudyUrlParams {
   tab?: string | null
   node_ref?: string | null
   direction?: string | null
-  rp_only?: boolean | null
 }
 
 /**
@@ -39,7 +38,6 @@ export function buildStudyUrl(params: StudyUrlParams): string {
   if (params.tab) qp.set('tab', params.tab)
   if (params.node_ref) qp.set('node_ref', params.node_ref)
   if (params.direction) qp.set('direction', params.direction)
-  if (params.rp_only === true) qp.set('rp_only', '1')
 
   const qs = qp.toString()
   return qs.length > 0 ? `${base}?${qs}` : base
