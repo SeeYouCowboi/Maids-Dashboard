@@ -10,7 +10,7 @@
 
 import { expect, test, type Page } from '@playwright/test'
 
-const TOKEN = 'mcw-local-dashboard'
+const TOKEN = process.env.E2E_TOKEN ?? 'mcw-dev-local-token'
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -212,7 +212,10 @@ test('7. Chat: sending a message does not crash the page', async ({ page }) => {
   const transcriptTabBtn = page.locator('button:has-text("Transcript")').first()
   await expect(transcriptTabBtn).toBeVisible({ timeout: 10_000 })
 
-  const textarea = page.locator('textarea[placeholder*="message" i], textarea[placeholder*="Message" i]').first()
+  // Locate the chat composer textarea. The placeholder changes between
+  // "Type a message…" (idle) and "Waiting for reply…" (streaming), so match
+  // either or just the first textarea rendered in the session page.
+  const textarea = page.locator('textarea').first()
   const hasChatInput = await textarea.isVisible()
 
   await page.screenshot({ path: 'e2e/screenshots/07a-before-chat.png', fullPage: true })
