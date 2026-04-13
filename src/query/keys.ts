@@ -57,6 +57,11 @@ export const queryKeys = {
     narratives: (agentId: string) => [...queryKeys.memory.all, 'narratives', agentId] as const,
     settlements: (agentId: string) => [...queryKeys.memory.all, 'settlements', agentId] as const,
   },
+  study: {
+    all: ['study'] as const,
+    recentRequests: (agentId: string) =>
+      [...queryKeys.study.all, 'recent-requests', agentId] as const,
+  },
   health: {
     healthz: ['healthz'] as const,
     readyz: ['readyz'] as const,

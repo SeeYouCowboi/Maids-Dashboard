@@ -1,10 +1,12 @@
 import { useCallback, useState } from 'react'
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { Link, useParams, useNavigate, useSearchParams } from 'react-router-dom'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'motion/react'
 import {
   BookOpen,
   Brain,
+  ChevronDown,
+  ChevronRight,
   Clock,
   FileText,
   Filter,
@@ -24,7 +26,7 @@ import {
   listPinnedSummaries,
   listSettlements,
 } from '../api/memory'
-import { getRetrievalTrace } from '../api/requests'
+import { getRetrievalTrace, listRecentRequests } from '../api/study'
 import { GlassCard } from '../components/ui/GlassCard'
 import { EmptyState } from '../components/ui/EmptyState'
 import { LoadingSpinner } from '../components/ui/LoadingSpinner'
@@ -36,6 +38,7 @@ import type {
   EpisodeItem,
   NarrativeItem,
   PinnedSummary,
+  RecentRequestItem,
   SettlementItem,
 } from '../contracts'
 import { useOffline } from '../hooks/OfflineContext'
@@ -355,7 +358,7 @@ function FacetContent({
     case 'pinned-summaries':
       return <PinnedSummariesFacet agentId={agentId} isOffline={isOffline} />
     case 'retrieval-trace':
-      return <RetrievalTraceFacet requestId={requestId} isOffline={isOffline} />
+      return <RetrievalTraceFacet agentId={agentId} requestId={requestId} isOffline={isOffline} />
   }
 }
 
@@ -426,13 +429,23 @@ function CoreBlocksFacet({ agentId, isOffline }: { agentId: string; isOffline: b
               <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
                 {block.content}
               </p>
-              <time
-                dateTime={toIso(block.updated_at)}
-                title={toIso(block.updated_at)}
-                className="text-[10px] text-gray-400 mt-2"
-              >
-                {formatTs(block.updated_at)}
-              </time>
+              <div className="flex items-center gap-2 mt-2">
+                <time
+                  dateTime={toIso(block.updated_at)}
+                  title={toIso(block.updated_at)}
+                  className="text-[10px] text-gray-400"
+                >
+                  {formatTs(block.updated_at)}
+                </time>
+                {block.snapshot_source && (
+                  <span
+                    className="text-[10px] bg-emerald-50 text-emerald-600 border border-emerald-200/60 rounded px-1.5 py-0.5"
+                    title={`Snapshot from ${block.snapshot_source}${block.snapshot_captured_at ? ` at ${toIso(block.snapshot_captured_at)}` : ''}`}
+                  >
+                    snapshot: {block.snapshot_source_id ?? block.snapshot_source}
+                  </span>
+                )}
+              </div>
             </motion.div>
           ))}
         </div>
@@ -504,12 +517,46 @@ function EpisodesFacet({ agentId, isOffline }: { agentId: string; isOffline: boo
               )}
               <div className="flex items-center gap-3 mt-2 text-[10px] text-gray-400">
                 <span>Settlement: {ep.settlement_id.slice(0, 12)}…</span>
+                <EpisodeTraceChip agentId={agentId} requestId={ep.request_id} />
               </div>
             </motion.div>
           ))}
         </div>
       )}
     </GlassCard>
+  )
+}
+
+/** Compact request_id chip: teal link when present, gray disabled badge when legacy. */
+function EpisodeTraceChip({
+  agentId,
+  requestId,
+}: {
+  agentId: string
+  requestId: string | null | undefined
+}) {
+  if (requestId != null && requestId.length > 0) {
+    return (
+      <Link
+        to={buildStudyUrl({ agentId, facet: 'retrieval-trace', request_id: requestId })}
+        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-teal-50/80 text-teal-600 border border-teal-200/60 hover:bg-teal-100/80 hover:border-teal-300 transition-colors"
+        data-testid="episode-trace-link"
+        title={`Retrieval trace: ${requestId}`}
+      >
+        <Search className="w-2.5 h-2.5" />
+        req: {requestId.slice(0, 8)}…
+      </Link>
+    )
+  }
+
+  return (
+    <span
+      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-gray-100/80 text-gray-400 border border-gray-200/60 cursor-not-allowed"
+      data-testid="episode-trace-legacy"
+      title="No request_id — legacy episode, trace unavailable"
+    >
+      legacy · no trace
+    </span>
   )
 }
 
@@ -590,6 +637,7 @@ const SETTLEMENT_STATUS_VARIANT: Record<
 }
 
 function SettlementsFacet({ agentId, isOffline }: { agentId: string; isOffline: boolean }) {
+  const queryClient = useQueryClient()
   const query = useQuery({
     queryKey: queryKeys.memory.settlements(agentId),
     queryFn: () => listSettlements(agentId),
@@ -597,6 +645,10 @@ function SettlementsFacet({ agentId, isOffline }: { agentId: string; isOffline: 
   })
 
   const items: readonly SettlementItem[] = query.data?.items ?? []
+
+  const cachedEpisodes: readonly EpisodeItem[] =
+    queryClient.getQueryData<{ items: EpisodeItem[] }>(queryKeys.memory.episodes(agentId))?.items ??
+    []
 
   return (
     <GlassCard color="emerald">
@@ -617,56 +669,136 @@ function SettlementsFacet({ agentId, isOffline }: { agentId: string; isOffline: 
       {query.isSuccess && items.length > 0 && (
         <div className="space-y-3">
           {items.map((s, i) => (
-            <motion.div
+            <SettlementRow
               key={s.settlement_id}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.04 }}
-              className="bg-white/50 border border-emerald-100/60 rounded-xl p-4"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <code className="text-xs text-emerald-600/80 bg-emerald-50/60 px-2 py-0.5 rounded-lg">
-                  {s.settlement_id.slice(0, 16)}…
-                </code>
-                <StatusBadge
-                  status={s.status}
-                  variant={SETTLEMENT_STATUS_VARIANT[s.status] ?? 'neutral'}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">
-                <span>Attempts: {String(s.attempt_count)}</span>
-                <span>
-                  Created:{' '}
-                  <time dateTime={toIso(s.created_at)} title={toIso(s.created_at)}>
-                    {formatTs(s.created_at)}
-                  </time>
-                </span>
-                {s.claimed_by != null && <span>Claimed by: {s.claimed_by}</span>}
-                {s.claimed_at != null && (
-                  <span>
-                    Claimed:{' '}
-                    <time dateTime={toIso(s.claimed_at)} title={toIso(s.claimed_at)}>
-                      {formatTs(s.claimed_at)}
-                    </time>
-                  </span>
-                )}
-                {s.applied_at != null && (
-                  <span>
-                    Applied:{' '}
-                    <time dateTime={toIso(s.applied_at)} title={toIso(s.applied_at)}>
-                      {formatTs(s.applied_at)}
-                    </time>
-                  </span>
-                )}
-                {s.error_message != null && (
-                  <span className="col-span-2 text-red-500">{s.error_message}</span>
-                )}
-              </div>
-            </motion.div>
+              settlement={s}
+              agentId={agentId}
+              index={i}
+              cachedEpisodes={cachedEpisodes}
+            />
           ))}
         </div>
       )}
     </GlassCard>
+  )
+}
+
+function SettlementRow({
+  settlement: s,
+  agentId,
+  index: i,
+  cachedEpisodes,
+}: {
+  settlement: SettlementItem
+  agentId: string
+  index: number
+  cachedEpisodes: readonly EpisodeItem[]
+}) {
+  const [expanded, setExpanded] = useState(false)
+
+  const producedEpisodes = cachedEpisodes
+    .filter((ep) => ep.settlement_id === s.settlement_id)
+    .sort((a, b) => b.committed_time - a.committed_time)
+
+  return (
+    <motion.div
+      key={s.settlement_id}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: i * 0.04 }}
+      className="bg-white/50 border border-emerald-100/60 rounded-xl p-4"
+    >
+      <div className="flex items-center justify-between mb-2">
+        <code className="text-xs text-emerald-600/80 bg-emerald-50/60 px-2 py-0.5 rounded-lg">
+          {s.settlement_id.slice(0, 16)}…
+        </code>
+        <StatusBadge status={s.status} variant={SETTLEMENT_STATUS_VARIANT[s.status] ?? 'neutral'} />
+      </div>
+      <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">
+        <span>Attempts: {String(s.attempt_count)}</span>
+        <span>
+          Created:{' '}
+          <time dateTime={toIso(s.created_at)} title={toIso(s.created_at)}>
+            {formatTs(s.created_at)}
+          </time>
+        </span>
+        {s.claimed_by != null && <span>Claimed by: {s.claimed_by}</span>}
+        {s.claimed_at != null && (
+          <span>
+            Claimed:{' '}
+            <time dateTime={toIso(s.claimed_at)} title={toIso(s.claimed_at)}>
+              {formatTs(s.claimed_at)}
+            </time>
+          </span>
+        )}
+        {s.applied_at != null && (
+          <span>
+            Applied:{' '}
+            <time dateTime={toIso(s.applied_at)} title={toIso(s.applied_at)}>
+              {formatTs(s.applied_at)}
+            </time>
+          </span>
+        )}
+        {s.error_message != null && (
+          <span className="col-span-2 text-red-500">{s.error_message}</span>
+        )}
+      </div>
+
+      <div className="mt-3 border-t border-emerald-100/40 pt-2">
+        <button
+          type="button"
+          onClick={() => setExpanded(!expanded)}
+          className="flex items-center gap-1.5 text-[10px] font-semibold text-emerald-600/80 hover:text-emerald-700 transition-colors cursor-pointer"
+          data-testid="settlement-episodes-toggle"
+        >
+          {expanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+          Produced Episodes (current window)
+          <span className="text-gray-400 font-normal">({String(producedEpisodes.length)})</span>
+        </button>
+
+        <AnimatePresence>
+          {expanded && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
+            >
+              {producedEpisodes.length === 0 ? (
+                <p className="text-[10px] text-gray-400 italic mt-2 pl-4">
+                  No episodes in current window.
+                </p>
+              ) : (
+                <div className="mt-2 space-y-2 pl-4" data-testid="settlement-episodes-list">
+                  {producedEpisodes.map((ep) => (
+                    <div
+                      key={String(ep.episode_id)}
+                      className="bg-white/40 border border-emerald-50/80 rounded-lg p-2.5"
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <StatusBadge status={ep.category} variant="info" />
+                        <time
+                          dateTime={toIso(ep.committed_time)}
+                          title={toIso(ep.committed_time)}
+                          className="text-[10px] text-gray-400"
+                        >
+                          {formatTs(ep.committed_time)}
+                        </time>
+                      </div>
+                      <p className="text-xs text-gray-600 leading-relaxed">{ep.summary}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <EpisodeTraceChip agentId={agentId} requestId={ep.request_id} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </motion.div>
   )
 }
 
@@ -732,67 +864,147 @@ function PinnedSummariesFacet({ agentId, isOffline }: { agentId: string; isOffli
 /* ── Retrieval Trace facet ─────────────────────────────────────────────── */
 
 function RetrievalTraceFacet({
+  agentId,
   requestId,
   isOffline,
 }: {
+  agentId: string
   requestId: string | null
   isOffline: boolean
 }) {
-  const query = useQuery({
+  const navigate = useNavigate()
+
+  /* Recent requests for this agent (shown when no request_id) */
+  const recentQuery = useQuery({
+    queryKey: queryKeys.study.recentRequests(agentId),
+    queryFn: () => listRecentRequests(agentId),
+    enabled: !requestId,
+    refetchInterval: 30_000,
+  })
+
+  const recentItems: readonly RecentRequestItem[] = recentQuery.data?.items ?? []
+
+  /* Retrieval trace for the selected request */
+  const traceQuery = useQuery({
     queryKey: queryKeys.requests.retrievalTrace(requestId ?? ''),
     queryFn: () => getRetrievalTrace(requestId!),
     enabled: requestId != null && requestId.length > 0,
     refetchInterval: 30_000,
   })
 
-  if (!requestId || requestId.length === 0) {
+  /* ── No request_id → show recent requests picker ───────────────────── */
+  if (!requestId) {
     return (
       <GlassCard color="emerald">
-        <div className="flex items-center gap-2 mb-4">
-          <Search className="w-4 h-4 text-emerald-500" />
-          <span className="text-sm font-bold text-emerald-600">Retrieval Trace</span>
-        </div>
-        <EmptyState
-          icon={<Search className="w-8 h-8" />}
-          message="Navigate here from a request in War Room or Grand Hall with a ?request_id= query parameter."
+        <FacetHeader
+          icon={<Search className="w-4 h-4" />}
+          label="Retrieval Trace"
+          count={recentItems.length}
+          onRefresh={() => void recentQuery.refetch()}
+          isOffline={isOffline}
         />
+
+        {recentQuery.isLoading && <FacetLoading />}
+        {recentQuery.isError && <FacetError />}
+
+        {recentQuery.isSuccess && recentItems.length === 0 && (
+          <EmptyState
+            icon={<Search className="w-6 h-6" />}
+            message="No requests found for this agent"
+          />
+        )}
+
+        {recentQuery.isSuccess && recentItems.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs text-gray-400 mb-2">
+              Select a request to view its retrieval trace:
+            </p>
+            {recentItems.map((item, i) => (
+              <motion.button
+                key={item.request_id}
+                type="button"
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.03 }}
+                onClick={() =>
+                  navigate(
+                    buildStudyUrl({
+                      agentId,
+                      facet: 'retrieval-trace',
+                      request_id: item.request_id,
+                    }),
+                  )
+                }
+                className="w-full text-left bg-white/50 border border-emerald-100/60 rounded-xl p-3 hover:bg-emerald-50/40 hover:border-emerald-200/80 transition-all duration-200 cursor-pointer"
+              >
+                <div className="flex items-center justify-between mb-1.5">
+                  <code className="text-xs text-emerald-600/80 bg-emerald-50/60 px-2 py-0.5 rounded-lg">
+                    {item.request_id.slice(0, 16)}…
+                  </code>
+                  <time
+                    dateTime={toIso(item.captured_at)}
+                    title={toIso(item.captured_at)}
+                    className="text-[10px] text-gray-400"
+                  >
+                    {formatTs(item.captured_at)}
+                  </time>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  {item.has_retrieval && <StatusBadge status="retrieval" variant="success" />}
+                  {item.has_settlement && <StatusBadge status="settlement" variant="info" />}
+                  {item.has_prompt && <StatusBadge status="prompt" variant="neutral" />}
+                </div>
+              </motion.button>
+            ))}
+          </div>
+        )}
       </GlassCard>
     )
   }
 
-  const retrieval = query.data?.retrieval ?? null
+  /* ── Has request_id → show trace detail ────────────────────────────── */
+  const retrieval = traceQuery.data?.retrieval ?? null
 
   return (
     <GlassCard color="emerald">
       <FacetHeader
         icon={<Search className="w-4 h-4" />}
         label="Retrieval Trace"
-        onRefresh={() => void query.refetch()}
+        onRefresh={() => void traceQuery.refetch()}
         isOffline={isOffline}
       />
 
-      <div className="mb-3">
-        <code className="text-xs text-emerald-600/80 bg-emerald-50/60 px-2 py-1 rounded-lg">
+      <div className="flex items-center gap-2 mb-3">
+        <button
+          type="button"
+          onClick={() => navigate(buildStudyUrl({ agentId, facet: 'retrieval-trace' }))}
+          className="text-xs text-emerald-500 hover:text-emerald-700 transition-colors cursor-pointer"
+        >
+          ← Recent Requests
+        </button>
+        <code className="text-xs text-emerald-600/80 bg-emerald-50/60 px-2 py-0.5 rounded-lg">
           {requestId}
         </code>
       </div>
 
-      {query.isLoading && <FacetLoading />}
-      {query.isError && <FacetError />}
+      {traceQuery.isLoading && <FacetLoading />}
+      {traceQuery.isError && <FacetError />}
 
-      {query.isSuccess && retrieval == null && (
+      {/* retrieval:null → dedicated empty state */}
+      {traceQuery.isSuccess && retrieval == null && (
         <EmptyState
           icon={<Search className="w-6 h-6" />}
-          message="No retrieval trace data for this request."
+          message="No retrieval was captured for this request"
         />
       )}
 
-      {query.isSuccess && retrieval != null && (
+      {traceQuery.isSuccess && retrieval != null && (
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           className="bg-white/50 border border-emerald-100/60 rounded-xl p-4 space-y-4"
         >
+          {/* Overview */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
             <div>
               <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider">
@@ -814,6 +1026,36 @@ function RetrievalTraceFacet({
             </span>
           </div>
 
+          {/* Segments detail list */}
+          {retrieval.segments != null && retrieval.segments.length > 0 && (
+            <div>
+              <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider block mb-2">
+                Segment Details
+              </span>
+              <div className="space-y-2">
+                {retrieval.segments.map((seg, idx) => (
+                  <div
+                    key={`${seg.source}-${String(idx)}`}
+                    className="bg-emerald-50/40 border border-emerald-100/50 rounded-lg p-3"
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-semibold text-emerald-700">{seg.source}</span>
+                      {seg.score != null && (
+                        <span className="text-[10px] text-gray-400 tabular-nums">
+                          score: {seg.score.toFixed(3)}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-600 leading-relaxed">
+                      {seg.content.length > 200 ? `${seg.content.slice(0, 200)}…` : seg.content}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Narrative facets */}
           {retrieval.narrative_facets_used.length > 0 && (
             <div>
               <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider block mb-1">
@@ -832,6 +1074,7 @@ function RetrievalTraceFacet({
             </div>
           )}
 
+          {/* Cognition facets */}
           {retrieval.cognition_facets_used.length > 0 && (
             <div>
               <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider block mb-1">
@@ -846,6 +1089,20 @@ function RetrievalTraceFacet({
                     {f}
                   </span>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* Navigator available indicator */}
+          {retrieval.navigator != null && (
+            <div className="bg-teal-50/50 border border-teal-100/60 rounded-lg p-3">
+              <div className="flex items-center gap-2">
+                <MapPin className="w-3.5 h-3.5 text-teal-500" />
+                <span className="text-xs font-semibold text-teal-600">Navigator available</span>
+                <span className="text-[10px] text-gray-400">
+                  {String(retrieval.navigator.steps.length)} steps ·{' '}
+                  {String(retrieval.navigator.final_selection.length)} selected
+                </span>
               </div>
             </div>
           )}
