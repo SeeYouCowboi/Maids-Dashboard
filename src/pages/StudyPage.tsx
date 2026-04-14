@@ -55,6 +55,7 @@ import type {
   NarrativeItem,
   PinnedSummary,
   RecentRequestItem,
+  ResolvedEntityNode,
   SettlementItem,
 } from '../contracts'
 import { useOffline } from '../hooks/OfflineContext'
@@ -465,6 +466,7 @@ function EpisodesFacet({ agentId, isOffline }: { agentId: string; isOffline: boo
   })
 
   const items: readonly EpisodeItem[] = query.data?.items ?? []
+  const resolvedEntities = query.data?.entity_refs_resolved
 
   return (
     <GlassCard color="emerald">
@@ -520,11 +522,49 @@ function EpisodesFacet({ agentId, isOffline }: { agentId: string; isOffline: boo
                 <span>Settlement: {ep.settlement_id.slice(0, 12)}…</span>
                 <EpisodeTraceChip agentId={agentId} requestId={ep.request_id} />
               </div>
+              <EpisodeEntityChips episode={ep} resolvedEntities={resolvedEntities} />
             </motion.div>
           ))}
         </div>
       )}
     </GlassCard>
+  )
+}
+
+function EpisodeEntityChips({
+  episode,
+  resolvedEntities,
+}: {
+  episode: EpisodeItem
+  resolvedEntities?: Record<string, ResolvedEntityNode>
+}) {
+  const entityRefs = readEntityRefs(episode)
+  if (entityRefs.length === 0) return null
+  return (
+    <div className="flex flex-wrap gap-1.5 mt-2.5" data-testid="episode-entity-refs">
+      {entityRefs.map((entityRef) => {
+        const resolved = resolvedEntities?.[entityRef]
+        const label = resolved?.display_name ?? entityRef
+        const chipText =
+          label.length > 28 ? `${label.slice(0, 16)}…${label.slice(-8)}` : label
+        const titleText = resolved
+          ? `${resolved.display_name} · ${entityRef} · ${resolved.entity_type}`
+          : entityRef
+        const chipClass = resolved
+          ? 'inline-flex items-center text-[10px] font-medium text-emerald-700 bg-emerald-50/80 border border-emerald-200 rounded-full px-2 py-0.5'
+          : 'inline-flex items-center text-[10px] font-medium text-teal-700 bg-teal-50/80 border border-teal-100 rounded-full px-2 py-0.5'
+        return (
+          <span
+            key={`${String(episode.episode_id)}-${entityRef}`}
+            className={chipClass}
+            title={titleText}
+            data-resolved={resolved ? 'true' : 'false'}
+          >
+            {chipText}
+          </span>
+        )
+      })}
+    </div>
   )
 }
 
@@ -1540,11 +1580,43 @@ function CognitionFacet({
   )
 }
 
+const POINTER_KIND_ALIASES: Record<string, string> = {
+  person: 'char',
+  character: 'char',
+  npc: 'char',
+  place: 'loc',
+  location: 'loc',
+  area: 'loc',
+  thing: 'item',
+  object: 'item',
+}
+
+function normalizePointerKey(raw: string): string {
+  const s = raw.normalize('NFKC').trim()
+  if (s.length === 0) return ''
+  const colonIdx = s.indexOf(':')
+  if (colonIdx === -1) return s.toLowerCase()
+  const rawKind = s.slice(0, colonIdx).trim().toLowerCase()
+  const body = s.slice(colonIdx + 1).trim()
+  if (rawKind.length === 0 || body.length === 0) return ''
+  const kind = POINTER_KIND_ALIASES[rawKind] ?? rawKind
+  return `${kind}:${body.toLowerCase()}`
+}
+
 function readEntityRefs(item: unknown): string[] {
   if (item == null || typeof item !== 'object') return []
   const refs = (item as { entity_refs?: unknown }).entity_refs
   if (!Array.isArray(refs)) return []
-  return refs.filter((ref): ref is string => typeof ref === 'string' && ref.length > 0)
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const ref of refs) {
+    if (typeof ref !== 'string') continue
+    const normalized = normalizePointerKey(ref)
+    if (normalized.length === 0 || seen.has(normalized)) continue
+    seen.add(normalized)
+    out.push(normalized)
+  }
+  return out
 }
 
 function AssertionsSubtab({
