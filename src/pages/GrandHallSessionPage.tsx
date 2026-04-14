@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react'
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'motion/react'
@@ -22,6 +22,13 @@ import { queryKeys } from '../query/keys'
 import { ApiError } from '../api/client'
 import { useOffline } from '../hooks/OfflineContext'
 import { buildStudyUrl } from '../lib/studyUrls'
+import {
+  getSessionTitle,
+  setSessionTitle,
+  deriveSessionTitle,
+  TITLE_MIN_MESSAGES,
+} from '../lib/sessionTitles'
+import { lightweightComplete } from '../api/util'
 
 type DetailTab = 'transcript' | 'memory'
 
@@ -51,6 +58,26 @@ export default function GrandHallSessionPage() {
   const [liveText, setLiveText] = useState('')
   const [liveActive, setLiveActive] = useState(false)
   const transcriptEndRef = useRef<HTMLDivElement>(null)
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const isInitialScrollDone = useRef(false)
+  const scrollTimeoutRef = useRef<any>(null)
+
+  // Reset scroll initialization flag when switching sessions
+  useEffect(() => {
+    isInitialScrollDone.current = false
+  }, [sessionId])
+
+  const handleScroll = useCallback(
+    (e: React.UIEvent<HTMLDivElement>) => {
+      if (!sessionId) return
+      const top = e.currentTarget.scrollTop
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current)
+      scrollTimeoutRef.current = setTimeout(() => {
+        sessionStorage.setItem(`session_scroll_${sessionId}`, top.toString())
+      }, 100)
+    },
+    [sessionId],
+  )
 
   const sessionsQuery = useQuery({
     queryKey: queryKeys.sessions.list(),
@@ -72,6 +99,15 @@ export default function GrandHallSessionPage() {
     return found?.display_name ?? session.agent_id
   })()
 
+  const sessionTitle = useMemo(() => {
+    if (session?.title) return session.title
+    if (sessionId) {
+      const stored = getSessionTitle(sessionId)
+      if (stored) return stored
+    }
+    return `Chat with ${agentDisplayName}`
+  }, [session, sessionId, agentDisplayName])
+
   const transcriptQuery = useQuery({
     queryKey: queryKeys.sessions.transcript(sessionId ?? ''),
     queryFn: () => getSessionTranscript(sessionId ?? ''),
@@ -85,10 +121,52 @@ export default function GrandHallSessionPage() {
   })
 
   // Clear optimistic user bubble once the real transcript entry arrives
-  const messageEntries =
-    (transcriptQuery.data?.entries as readonly TranscriptEntry[] | undefined)?.filter(
-      (e) => e.record_type === 'message',
-    ) ?? []
+  const messageEntries = useMemo(() => {
+    return (
+      (transcriptQuery.data?.entries as readonly TranscriptEntry[] | undefined)?.filter(
+        (e) => e.record_type === 'message'
+      ) ?? []
+    )
+  }, [transcriptQuery.data?.entries])
+
+  // Auto-generate title when transcript has enough messages
+  useEffect(() => {
+    if (!sessionId || !transcriptQuery.isSuccess) return
+    if (session?.title || getSessionTitle(sessionId)) return
+    if (messageEntries.length < TITLE_MIN_MESSAGES) return
+
+    const firstUserText = messageEntries
+      .filter((e) => e.actor === 'user' && e.text)
+      .slice(0, 3)
+      .map((e) => e.text!)
+      .join('\n')
+    if (!firstUserText) return
+
+    let cancelled = false
+
+    lightweightComplete({
+      messages: [
+        {
+          role: 'user',
+          content: `请根据以下对话开头，用不超过10个字为这个会话起一个简短的标题，只输出标题本身，不要加引号或标点：\n\n${firstUserText}`,
+        },
+      ],
+      max_tokens: 24,
+      temperature: 0.3,
+    })
+      .then(({ text }) => {
+        if (cancelled) return
+        const title = text.trim().replace(/^["「『【]|["」』】]$/g, '').trim()
+        if (title) setSessionTitle(sessionId, title)
+      })
+      .catch(() => {
+        if (cancelled) return
+        const title = deriveSessionTitle(messageEntries)
+        if (title) setSessionTitle(sessionId, title)
+      })
+
+    return () => { cancelled = true }
+  }, [sessionId, session?.title, transcriptQuery.isSuccess, messageEntries])
 
   useEffect(() => {
     if (!pendingUserMsg) return
@@ -101,8 +179,24 @@ export default function GrandHallSessionPage() {
   }, [messageEntries, pendingUserMsg])
 
   useEffect(() => {
+    if (!transcriptQuery.isSuccess) return
+
+    if (!isInitialScrollDone.current) {
+      // Delay briefly to allow DOM elements (messages) to render
+      setTimeout(() => {
+        const saved = sessionStorage.getItem(`session_scroll_${sessionId}`)
+        if (saved && scrollContainerRef.current) {
+          scrollContainerRef.current.scrollTop = parseInt(saved, 10)
+        } else {
+          transcriptEndRef.current?.scrollIntoView({ behavior: 'auto' })
+        }
+        isInitialScrollDone.current = true
+      }, 0)
+      return
+    }
+
     transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messageEntries, liveText, liveActive, pendingUserMsg])
+  }, [messageEntries, liveText, liveActive, pendingUserMsg, transcriptQuery.isSuccess, sessionId])
 
   const handleSendOptimistic = useCallback((text: string) => {
     setPendingUserMsg(text)
@@ -173,12 +267,20 @@ export default function GrandHallSessionPage() {
         </div>
 
         {/* Name + session id */}
-        <div className="flex-1 min-w-0 flex items-baseline gap-2">
-          <span className="font-semibold text-sm text-gray-800 truncate">{agentDisplayName}</span>
+        <div className="flex-1 min-w-0 flex items-center gap-3 pr-2">
+          <span className="font-bold text-sm text-gray-800 truncate">{sessionTitle}</span>
           {session && (
-            <code className="text-[10px] text-gray-400 hidden sm:block truncate">
-              {session.session_id.slice(0, 14)}…
-            </code>
+            <div className="flex items-center gap-2 opacity-90 shrink-0">
+              <span className="text-[10px] text-gray-500 font-medium hidden sm:block">
+                Agent: <span className="text-gray-700">{agentDisplayName}</span>
+              </span>
+              <code
+                className="text-[10px] font-mono tracking-wider text-blue-600/80 bg-blue-50/80 border border-blue-100/50 px-2 py-0.5 rounded-md hidden md:block select-all"
+                title={session.session_id}
+              >
+                {session.session_id}
+              </code>
+            </div>
           )}
         </div>
 
@@ -265,11 +367,10 @@ export default function GrandHallSessionPage() {
               key={tab.key}
               type="button"
               onClick={() => setActiveTab(tab.key)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-[10px] transition-all duration-200 ${
-                activeTab === tab.key
-                  ? 'bg-white/80 text-pink-600 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700 hover:bg-white/30'
-              }`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-[10px] transition-all duration-200 ${activeTab === tab.key
+                ? 'bg-white/80 text-pink-600 shadow-sm'
+                : 'text-gray-500 hover:text-gray-700 hover:bg-white/30'
+                }`}
             >
               <tab.icon className="w-3 h-3" />
               {tab.label}
@@ -297,7 +398,11 @@ export default function GrandHallSessionPage() {
             )}
 
             {transcriptQuery.isSuccess && (
-              <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3">
+              <div
+                className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3"
+                ref={scrollContainerRef}
+                onScroll={handleScroll}
+              >
                 {messageEntries.length === 0 && !pendingUserMsg && !liveActive && !liveText ? (
                   <EmptyState
                     icon={<MessageSquare className="w-6 h-6" />}
@@ -311,11 +416,10 @@ export default function GrandHallSessionPage() {
                         initial={{ opacity: 0, x: entry.actor === 'user' ? 10 : -10 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: Math.min(i * 0.02, 0.25) }}
-                        className={`rounded-2xl px-4 py-3 ${
-                          entry.actor === 'user'
-                            ? 'bg-pink-50/70 border border-pink-100/80 ml-10'
-                            : 'bg-white/60 border border-white/80 mr-10'
-                        }`}
+                        className={`rounded-2xl px-4 py-3 ${entry.actor === 'user'
+                          ? 'bg-pink-50/70 border border-pink-100/80 ml-10'
+                          : 'bg-white/60 border border-white/80 mr-10'
+                          }`}
                       >
                         <div className="flex items-baseline justify-between mb-1 gap-2">
                           <span className="text-[10px] text-gray-400 shrink-0">
@@ -326,9 +430,8 @@ export default function GrandHallSessionPage() {
                           </span>
                         </div>
                         <p
-                          className={`text-[15px] leading-[1.7] text-gray-700 whitespace-pre-wrap ${
-                            entry.actor !== 'user' ? 'font-serif' : ''
-                          }`}
+                          className={`text-[15px] leading-[1.7] text-gray-700 whitespace-pre-wrap ${entry.actor !== 'user' ? 'font-serif' : ''
+                            }`}
                         >
                           {entry.text}
                         </p>
@@ -340,6 +443,8 @@ export default function GrandHallSessionPage() {
                                 facet: 'retrieval-trace',
                                 request_id: entry.request_id,
                               })}
+                              target="_blank"
+                              rel="noopener noreferrer"
                               className="inline-flex items-center gap-1 text-[11px] text-teal-600 hover:text-teal-800 transition-colors"
                               data-testid="grand-hall-retrieval-link"
                             >
@@ -352,6 +457,8 @@ export default function GrandHallSessionPage() {
                                 request_id: entry.request_id,
                                 tab: 'assertions',
                               })}
+                              target="_blank"
+                              rel="noopener noreferrer"
                               className="inline-flex items-center gap-1 text-[11px] text-teal-600 hover:text-teal-800 transition-colors"
                               data-testid="grand-hall-cognition-link"
                             >

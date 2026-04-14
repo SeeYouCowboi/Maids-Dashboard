@@ -55,7 +55,7 @@ export default function GrandHallPage() {
 
   const filteredSessions = useMemo(() => {
     const items = sessionsQuery.data?.items ?? []
-    return items.filter((s) => {
+    const filtered = items.filter((s) => {
       if (statusFilter !== 'all' && s.status !== statusFilter) return false
       if (search.length > 0) {
         const q = search.toLowerCase()
@@ -67,6 +67,13 @@ export default function GrandHallPage() {
         )
       }
       return true
+    })
+
+    return filtered.sort((a, b) => {
+      const weightA = a.status === 'closed' ? 1 : 0
+      const weightB = b.status === 'closed' ? 1 : 0
+      if (weightA !== weightB) return weightA - weightB
+      return b.created_at - a.created_at
     })
   }, [sessionsQuery.data, statusFilter, search, agentMap])
 
@@ -268,11 +275,10 @@ export default function GrandHallPage() {
               key={opt.value}
               type="button"
               onClick={() => setStatusFilter(opt.value)}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-xl transition-all duration-200 ${
-                statusFilter === opt.value
+              className={`px-3 py-1.5 text-xs font-semibold rounded-xl transition-all duration-200 ${statusFilter === opt.value
                   ? 'bg-white/70 text-pink-600 shadow-sm'
                   : 'text-gray-500 hover:text-gray-700 hover:bg-white/30'
-              }`}
+                }`}
             >
               {opt.label}
             </button>

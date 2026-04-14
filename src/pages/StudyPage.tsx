@@ -536,7 +536,7 @@ function EpisodeEntityChips({
   resolvedEntities,
 }: {
   episode: EpisodeItem
-  resolvedEntities?: Record<string, ResolvedEntityNode>
+  resolvedEntities: Record<string, ResolvedEntityNode> | undefined
 }) {
   const entityRefs = readEntityRefs(episode)
   if (entityRefs.length === 0) return null
