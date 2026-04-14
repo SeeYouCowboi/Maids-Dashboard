@@ -55,7 +55,7 @@ bun run build        # -> dist/
 ## Authentication
 
 - Login: enter a MaidsClaw bearer token in the login screen
-- Token stored in `sessionStorage` (`mc:token`) — evicted when tab closes
+- Token stored in `localStorage` (`mc:token`) — persists across tabs and reloads until logout or 401
 - Offline: read-only cached data remains visible; write affordances are disabled
 - `401` from gateway: token is cleared, login screen shown
 
@@ -145,7 +145,7 @@ Use this checklist for every production cutover:
 
 ### Login Loop
 
-1. Open browser DevTools, go to Application, then sessionStorage
+1. Open browser DevTools, go to Application, then localStorage
 2. Clear the `mc:token` key manually
 3. Hard-reload the page
 4. Try a fresh bearer token

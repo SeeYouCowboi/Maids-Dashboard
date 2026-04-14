@@ -4,7 +4,7 @@
  */
 import { expect, test, type Page } from '@playwright/test'
 
-const TOKEN = process.env.E2E_TOKEN ?? 'mcw-dev-local-token'
+const TOKEN = process.env.E2E_TOKEN ?? 'maidsclaw'
 
 async function login(page: Page) {
   await page.goto('/')

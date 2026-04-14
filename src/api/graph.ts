@@ -44,7 +44,7 @@ export function listGraphNodes(
   params?: GraphNodeListParams,
 ): Promise<GraphNodeListResponse> {
   return apiFetch<GraphNodeListResponse>(
-    `/v1/agents/${encodeURIComponent(agentId)}/graph/nodes${buildQs(params)}`,
+    `/v1/agents/${agentId}/graph/nodes${buildQs(params)}`,
   )
 }
 
@@ -53,7 +53,7 @@ export function getGraphNodeDetail(
   nodeRef: string,
 ): Promise<GraphNodeDetailResponse> {
   return apiFetch<GraphNodeDetailResponse>(
-    `/v1/agents/${encodeURIComponent(agentId)}/graph/nodes/${encodeURIComponent(nodeRef)}`,
+    `/v1/agents/${agentId}/graph/nodes/${encodeURIComponent(nodeRef)}`,
   )
 }
 
@@ -63,6 +63,6 @@ export function listGraphNodeEdges(
   params?: GraphEdgeListParams,
 ): Promise<GraphEdgesResponse> {
   return apiFetch<GraphEdgesResponse>(
-    `/v1/agents/${encodeURIComponent(agentId)}/graph/nodes/${encodeURIComponent(nodeRef)}/edges${buildEdgeQs(params)}`,
+    `/v1/agents/${agentId}/graph/nodes/${encodeURIComponent(nodeRef)}/edges${buildEdgeQs(params)}`,
   )
 }

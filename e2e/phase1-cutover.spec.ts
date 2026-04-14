@@ -6,13 +6,13 @@
  *   hot reload → verify updated persona is visible + used by a fresh chat
  *
  * Prerequisites:
- *   - MaidsClaw gateway on :18790 (config/auth.json token: mcw-dev-local-token)
+ *   - MaidsClaw gateway on :18790 (config/auth.json token: maidsclaw)
  *   - Dashboard dev server on :5173
  */
 
 import { expect, test, type Page, request as pwRequest } from '@playwright/test'
 
-const TOKEN = process.env.E2E_TOKEN ?? 'mcw-dev-local-token'
+const TOKEN = process.env.E2E_TOKEN ?? 'maidsclaw'
 const GATEWAY = process.env.E2E_GATEWAY ?? 'http://localhost:18790'
 const MARKER_SUFFIX = `e2e-${Date.now().toString(36)}`
 

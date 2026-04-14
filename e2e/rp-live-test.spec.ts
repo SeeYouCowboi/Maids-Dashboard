@@ -17,7 +17,7 @@ import { expect, test, type Page } from '@playwright/test'
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 
-const TOKEN = 'mcw-local-dashboard'
+const TOKEN = process.env.E2E_TOKEN ?? 'maidsclaw'
 
 // 40-minute global timeout for the full 70-turn run
 test.setTimeout(40 * 60 * 1000)
@@ -366,7 +366,7 @@ async function sendTurn(
   // Read Alice's response directly from the gateway transcript API.
   // This is more reliable than DOM scraping of the streaming div.
   const resp = await fetch(`http://localhost:18790/v1/sessions/${sessionId}/transcript`, {
-    headers: { Authorization: 'Bearer mcw-local-dashboard' },
+    headers: { Authorization: `Bearer ${TOKEN}` },
   })
   if (!resp.ok) return ''
   const data = (await resp.json()) as { entries?: Array<{ actor: string; record_type: string; text?: string }> }

@@ -3,7 +3,7 @@ import { apiFetch } from './client'
 
 export function listRecentRequests(agentId: string, limit = 20): Promise<RecentRequestList> {
   return apiFetch<RecentRequestList>(
-    `/v1/agents/${encodeURIComponent(agentId)}/recent-requests?limit=${String(limit)}`,
+    `/v1/agents/${agentId}/recent-requests?limit=${String(limit)}`,
   )
 }
 

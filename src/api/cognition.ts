@@ -33,7 +33,7 @@ export function listCognitionAssertions(
   params?: CognitionListParams,
 ): Promise<AssertionListResponse> {
   return apiFetch<AssertionListResponse>(
-    `/v1/agents/${encodeURIComponent(agentId)}/cognition/assertions${buildQs(params)}`,
+    `/v1/agents/${agentId}/cognition/assertions${buildQs(params)}`,
   )
 }
 
@@ -42,7 +42,7 @@ export function listCognitionEvaluations(
   params?: CognitionListParams,
 ): Promise<EvaluationListResponse> {
   return apiFetch<EvaluationListResponse>(
-    `/v1/agents/${encodeURIComponent(agentId)}/cognition/evaluations${buildQs(params)}`,
+    `/v1/agents/${agentId}/cognition/evaluations${buildQs(params)}`,
   )
 }
 
@@ -51,7 +51,7 @@ export function listCognitionCommitments(
   params?: CognitionListParams,
 ): Promise<CommitmentListResponse> {
   return apiFetch<CommitmentListResponse>(
-    `/v1/agents/${encodeURIComponent(agentId)}/cognition/commitments${buildQs(params)}`,
+    `/v1/agents/${agentId}/cognition/commitments${buildQs(params)}`,
   )
 }
 
@@ -60,6 +60,6 @@ export function getCognitionHistory(
   cognitionKey: string,
 ): Promise<CognitionHistoryResponse> {
   return apiFetch<CognitionHistoryResponse>(
-    `/v1/agents/${encodeURIComponent(agentId)}/cognition/${encodeURIComponent(cognitionKey)}/history`,
+    `/v1/agents/${agentId}/cognition/${encodeURIComponent(cognitionKey)}/history`,
   )
 }

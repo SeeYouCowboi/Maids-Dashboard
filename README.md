@@ -106,9 +106,9 @@ Open `http://localhost:5173` in a browser. Log in with a MaidsClaw bearer token.
 
 The Dashboard uses bearer token authentication:
 
-1. Open the app — if no token is in `sessionStorage`, a login screen appears
+1. Open the app — if no token is in `localStorage`, a login screen appears
 2. Enter your MaidsClaw bearer token
-3. Token is stored in `sessionStorage` (`mc:token`) — evicted on tab close
+3. Token is stored in `localStorage` (`mc:token`) — persists across tabs and reloads
 4. `401` responses automatically clear the token and return to login
 
 Tokens are never sent over non-HTTPS non-localhost origins.

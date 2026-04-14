@@ -5,12 +5,12 @@
  *   - MaidsClaw gateway: bun run start  (port 18790)
  *   - Dashboard dev server: bun run dev  (port 5173)
  *
- * Auth token: mcw-local-dashboard
+ * Auth token: maidsclaw
  */
 
 import { expect, test, type Page } from '@playwright/test'
 
-const TOKEN = process.env.E2E_TOKEN ?? 'mcw-dev-local-token'
+const TOKEN = process.env.E2E_TOKEN ?? 'maidsclaw'
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
