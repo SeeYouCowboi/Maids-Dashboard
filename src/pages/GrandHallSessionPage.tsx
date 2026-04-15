@@ -151,8 +151,8 @@ export default function GrandHallSessionPage() {
           content: `请根据以下对话开头，用不超过10个字为这个会话起一个简短的标题，只输出标题本身，不要加引号或标点：\n\n${firstUserText}`,
         },
       ],
-      max_tokens: 24,
-      temperature: 0.3,
+      max_tokens: 512,
+      temperature: 0.6,
     })
       .then(({ text }) => {
         if (cancelled) return

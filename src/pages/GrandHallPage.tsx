@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'motion/react'
 import { Home, Plus, Users, Filter, X } from 'lucide-react'
 import { PageHeader } from '../components/ui/PageHeader'
 import { GlassCard } from '../components/ui/GlassCard'
+import { GlassSelect } from '../components/ui/GlassSelect'
 import { SearchBar } from '../components/ui/SearchBar'
 import { LoadingSpinner } from '../components/ui/LoadingSpinner'
 import { EmptyState } from '../components/ui/EmptyState'
@@ -199,19 +200,20 @@ export default function GrandHallPage() {
                   >
                     Agent
                   </label>
-                  <select
+                  <GlassSelect
                     id="agent-select"
+                    color="pink"
+                    placeholder="Select an agent…"
                     value={selectedAgentId}
-                    onChange={(e) => setSelectedAgentId(e.target.value)}
-                    className="w-full bg-white/60 backdrop-blur-sm border border-white/80 rounded-xl px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-pink-300 focus:ring-2 focus:ring-pink-100 transition-all"
-                  >
-                    <option value="">Select an agent…</option>
-                    {agentsQuery.data?.agents.map((agent) => (
-                      <option key={agent.id} value={agent.id}>
-                        {agent.display_name} ({agent.role})
-                      </option>
-                    ))}
-                  </select>
+                    onChange={setSelectedAgentId}
+                    options={
+                      agentsQuery.data?.agents.map((agent) => ({
+                        value: agent.id,
+                        label: agent.display_name,
+                        description: agent.role,
+                      })) ?? []
+                    }
+                  />
                 </div>
                 <div className="flex items-end">
                   <button

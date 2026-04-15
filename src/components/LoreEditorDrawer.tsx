@@ -10,6 +10,7 @@ import { createLore, updateLore } from '../api/lore'
 import { queryKeys } from '../query/keys'
 import { useOffline } from '../hooks/OfflineContext'
 import { ApiError } from '../api/client'
+import { GlassSelect } from './ui/GlassSelect'
 
 interface LoreEditorDrawerProps {
   open: boolean
@@ -191,13 +192,18 @@ export function LoreEditorDrawer({ open, lore, onClose }: LoreEditorDrawerProps)
                 </FieldWrapper>
 
                 <FieldWrapper label="Scope" error={errors.scope?.message}>
-                  <select {...register('scope')} className={fieldInputClass()}>
-                    {SCOPE_OPTIONS.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
+                  <Controller
+                    control={control}
+                    name="scope"
+                    render={({ field }) => (
+                      <GlassSelect
+                        color="purple"
+                        value={field.value ?? ''}
+                        onChange={(v) => field.onChange(v as LoreScope)}
+                        options={SCOPE_OPTIONS.map((s) => ({ value: s, label: s }))}
+                      />
+                    )}
+                  />
                 </FieldWrapper>
 
                 <FieldWrapper label="Priority" error={errors.priority?.message}>

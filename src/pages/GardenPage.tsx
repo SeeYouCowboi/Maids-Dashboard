@@ -9,6 +9,7 @@ import { listProviders } from '../api/providers'
 import { getRuntimeSnapshot } from '../api/runtime'
 import { EmptyState } from '../components/ui/EmptyState'
 import { GlassCard } from '../components/ui/GlassCard'
+import { GlassSelect } from '../components/ui/GlassSelect'
 import { LoadingSpinner } from '../components/ui/LoadingSpinner'
 import { PageHeader } from '../components/ui/PageHeader'
 import { StatusBadge } from '../components/ui/StatusBadge'
@@ -474,16 +475,18 @@ function PrefsTab() {
         <label htmlFor="theme-select" className="block text-xs font-semibold text-gray-500 mb-1.5">
           Appearance
         </label>
-        <select
+        <GlassSelect
           id="theme-select"
+          color="emerald"
+          className="w-full sm:w-64"
           value={prefs.theme}
-          onChange={(e) => prefs.setTheme(e.target.value as ThemePref)}
-          className="w-full sm:w-64 bg-white/60 backdrop-blur-sm border border-white/80 rounded-xl px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-green-300 focus:ring-2 focus:ring-green-100 transition-all"
-        >
-          <option value="system">System</option>
-          <option value="light">Light</option>
-          <option value="dark">Dark</option>
-        </select>
+          onChange={(v) => prefs.setTheme(v as ThemePref)}
+          options={[
+            { value: 'system', label: 'System', description: 'Follow OS preference' },
+            { value: 'light', label: 'Light' },
+            { value: 'dark', label: 'Dark' },
+          ]}
+        />
         <p className="text-[10px] text-gray-400 mt-1">
           Visual theme preference. Changes may require a page reload to fully apply.
         </p>
@@ -497,16 +500,18 @@ function PrefsTab() {
         >
           Refresh frequency for system data
         </label>
-        <select
+        <GlassSelect
           id="polling-select"
-          value={prefs.pollingInterval}
-          onChange={(e) => prefs.setPollingInterval(Number(e.target.value) as PollingInterval)}
-          className="w-full sm:w-64 bg-white/60 backdrop-blur-sm border border-white/80 rounded-xl px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-green-300 focus:ring-2 focus:ring-green-100 transition-all"
-        >
-          <option value={15}>15 seconds</option>
-          <option value={30}>30 seconds</option>
-          <option value={60}>60 seconds</option>
-        </select>
+          color="emerald"
+          className="w-full sm:w-64"
+          value={String(prefs.pollingInterval)}
+          onChange={(v) => prefs.setPollingInterval(Number(v) as PollingInterval)}
+          options={[
+            { value: '15', label: '15 seconds' },
+            { value: '30', label: '30 seconds' },
+            { value: '60', label: '60 seconds' },
+          ]}
+        />
       </GlassCard>
 
       {/* API Base Override */}

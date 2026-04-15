@@ -904,6 +904,40 @@ function PinnedSummariesFacet({ agentId, isOffline }: { agentId: string; isOffli
 
 /* ── Retrieval Trace facet ─────────────────────────────────────────────── */
 
+function PromptSlotBlock({
+  label,
+  hint,
+  value,
+}: {
+  label: string
+  hint: string
+  value: string | undefined
+}) {
+  const trimmed = value?.trim() ?? ''
+  const isEmpty = trimmed.length === 0
+  return (
+    <details
+      className="group bg-emerald-50/40 border border-emerald-100/60 rounded-lg"
+      data-testid={`prompt-slot-${label.toLowerCase().replace(/\W+/g, '-')}`}
+    >
+      <summary className="cursor-pointer px-3 py-2 flex items-center justify-between gap-2 hover:bg-emerald-50/60 rounded-lg list-none">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-xs font-semibold text-emerald-700">{label}</span>
+          <span className="text-[10px] text-gray-400 truncate">{hint}</span>
+        </div>
+        <span className="text-[10px] text-gray-400 tabular-nums shrink-0">
+          {isEmpty ? 'empty' : `${String(trimmed.length)} chars`}
+        </span>
+      </summary>
+      {!isEmpty && (
+        <pre className="mx-3 mb-3 mt-1 p-2.5 text-[11px] text-gray-700 leading-relaxed bg-white/70 border border-emerald-100/60 rounded whitespace-pre-wrap break-words font-mono max-h-[320px] overflow-y-auto">
+          {trimmed}
+        </pre>
+      )}
+    </details>
+  )
+}
+
 function RetrievalTraceFacet({
   agentId,
   requestId,
@@ -1013,6 +1047,14 @@ function RetrievalTraceFacet({
   /* ── Has request_id → show trace detail ────────────────────────────── */
   const retrieval = traceQuery.data?.retrieval ?? null
   const navigator = retrieval?.navigator ?? null
+  const promptSections = traceQuery.data?.prompt_sections ?? null
+  const hasPromptSections =
+    promptSections != null &&
+    (promptSections.pinned_shared ||
+      promptSections.recent_cognition ||
+      promptSections.typed_retrieval ||
+      promptSections.lore_entries)
+  const hasAnyTraceData = retrieval != null || Boolean(hasPromptSections)
 
   function selectRetrievalSubtab(nextTab: 'summary' | 'walk') {
     if (!requestId) return
@@ -1078,15 +1120,15 @@ function RetrievalTraceFacet({
       {traceQuery.isLoading && <FacetLoading />}
       {traceQuery.isError && <FacetError />}
 
-      {/* retrieval:null → dedicated empty state */}
-      {traceQuery.isSuccess && retrieval == null && (
+      {/* Nothing captured → dedicated empty state */}
+      {traceQuery.isSuccess && !hasAnyTraceData && (
         <EmptyState
           icon={<Search className="w-6 h-6" />}
-          message="No retrieval was captured for this request"
+          message="No retrieval or prompt memory captured for this request"
         />
       )}
 
-      {traceQuery.isSuccess && retrieval != null && (
+      {traceQuery.isSuccess && hasAnyTraceData && (
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
@@ -1094,30 +1136,34 @@ function RetrievalTraceFacet({
         >
           {retrievalSubtab === 'summary' && (
             <>
-              {/* Overview */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                <div>
-                  <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider">
-                    Query
-                  </span>
-                  <p className="text-gray-700 mt-1">{retrieval.query_string}</p>
-                </div>
-                <div>
-                  <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider">
-                    Strategy
-                  </span>
-                  <p className="text-gray-700 mt-1">{retrieval.strategy}</p>
-                </div>
-              </div>
+              {retrieval != null && (
+                <>
+                  {/* Overview */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider">
+                        Query
+                      </span>
+                      <p className="text-gray-700 mt-1">{retrieval.query_string}</p>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider">
+                        Strategy
+                      </span>
+                      <p className="text-gray-700 mt-1">{retrieval.strategy}</p>
+                    </div>
+                  </div>
 
-              <div>
-                <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider">
-                  Segments: {String(retrieval.segment_count)}
-                </span>
-              </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider">
+                      Segments: {String(retrieval.segment_count)}
+                    </span>
+                  </div>
+                </>
+              )}
 
               {/* Segments detail list */}
-              {retrieval.segments != null && retrieval.segments.length > 0 && (
+              {retrieval?.segments != null && retrieval.segments.length > 0 && (
                 <div>
                   <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider block mb-2">
                     Segment Details
@@ -1148,7 +1194,7 @@ function RetrievalTraceFacet({
               )}
 
               {/* Narrative facets */}
-              {retrieval.narrative_facets_used.length > 0 && (
+              {retrieval != null && retrieval.narrative_facets_used.length > 0 && (
                 <div>
                   <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider block mb-1">
                     Narrative Facets
@@ -1167,7 +1213,7 @@ function RetrievalTraceFacet({
               )}
 
               {/* Cognition facets */}
-              {retrieval.cognition_facets_used.length > 0 && (
+              {retrieval != null && retrieval.cognition_facets_used.length > 0 && (
                 <div>
                   <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider block mb-1">
                     Cognition Facets
@@ -1195,6 +1241,43 @@ function RetrievalTraceFacet({
                       {String(navigator.steps.length)} steps ·{' '}
                       {String(navigator.final_selection.length)} selected
                     </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Recalled Memory Context — what prompt-builder actually injected into the LLM prompt. */}
+              {promptSections != null && (
+                <div className="pt-2 border-t border-emerald-100/60">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Lightbulb className="w-3.5 h-3.5 text-emerald-500" />
+                    <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider">
+                      Recalled Memory Context
+                    </span>
+                    <span className="text-[10px] text-gray-400">
+                      (rendered prompt slots — exactly what the LLM saw)
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    <PromptSlotBlock
+                      label="Pinned / Shared Blocks"
+                      hint="persona, pinned_summary, attached shared blocks"
+                      value={promptSections.pinned_shared}
+                    />
+                    <PromptSlotBlock
+                      label="Recent Cognition"
+                      hint="top active commitments + recent assertions/evaluations"
+                      value={promptSections.recent_cognition}
+                    />
+                    <PromptSlotBlock
+                      label="Typed Retrieval"
+                      hint="cognition / narrative / conflict_notes / episode buckets"
+                      value={promptSections.typed_retrieval}
+                    />
+                    <PromptSlotBlock
+                      label="Lore Entries"
+                      hint="lorebook matches against user message"
+                      value={promptSections.lore_entries}
+                    />
                   </div>
                 </div>
               )}
