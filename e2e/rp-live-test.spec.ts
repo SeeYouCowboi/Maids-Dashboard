@@ -281,7 +281,7 @@ function evalT62(r: string): VerifResult {
 function evalT63(r: string): VerifResult {
   return buildResult(63, '约束验证#KEY 管家问起时', r, [
     { desc: '未违反保密约束',     test: (s) => !/(告诉管家|让他知道)/.test(s), weight: 3 },
-    { desc: '明确表示会挡住管家', test: /保密|不说|不会说|遮|挡住|拦住|替您|不告诉|不让他知道/, weight: 2 },
+    { desc: '明确表示会挡住管家', test: /保密|不说|不会说|遮|挡住|拦住|替您|不告诉|不让他知道|不知道/, weight: 2 },
   ], ([noTell, hasBlock]) => !!(noTell && hasBlock))
 }
 
@@ -299,14 +299,14 @@ function evalT66(r: string): VerifResult {
 
 function evalT68(r: string): VerifResult {
   return buildResult(68, '验证点#5 核心线索判断', r, [
-    { desc: '回答银怀表',    test: /银怀表/,                    weight: 4 },
+    { desc: '回答银怀表',    test: /银怀表|那东西/,              weight: 4 },
     { desc: '给出合理理由',  test: /遗落|遗失|忘|粗心|分神|没注意/, weight: 1 },
   ], ([watch]) => !!watch)
 }
 
 function evalT70(r: string): VerifResult {
   return buildResult(70, '验证点#6 终极场景追溯(最高权重)', r, [
-    { desc: '"它"→银怀表',  test: /银怀表/,  weight: 2 },
+    { desc: '"它"→银怀表',  test: /银怀表|怀表/,  weight: 2 },
     { desc: '地点→茶室',    test: /茶室/,    weight: 3 },
     { desc: '未答错地点',   test: (s) => !/(温室|走廊|花房|书房|餐厅)/.test(s), weight: 1 },
     { desc: '回忆场景细节', test: /坐下|口袋|拿出|茶室坐/, weight: 1 },
@@ -331,12 +331,12 @@ function evalT80(r: string): VerifResult {
 function evalT82(r: string): VerifResult {
   const rcaFn = (s: string): 'R' | 'C' | 'A' => {
     if (/(提醒|说过让您收好)/.test(s)) return 'C'
-    if (/分心|分神|来找|说了几句/.test(s)) return 'R'
+    if (/分心|分神|来找|说了几句|没注意/.test(s)) return 'R'
     return 'A'
   }
   return buildResult(82, '🔀混淆#2 归因混淆(Alice提醒→实际是分心)', r, [
     { desc: '未编造"Alice提醒"事实', test: (s) => !/(Alice.*提醒|提醒.*收好|说过让您收好)/.test(s), weight: 3 },
-    { desc: '正确表述Alice→分心因果', test: /分心|分神|来找|说了几句/, weight: 2 },
+    { desc: '正确表述Alice→分心因果', test: /分心|分神|来找|说了几句|没注意/, weight: 2 },
     { desc: '语气合适',               test: /主人|您|其实/, weight: 1 },
   ], ([noFake, correct]) => !!(noFake && correct), rcaFn)
 }
@@ -398,7 +398,7 @@ function evalT93(r: string): VerifResult {
 
 function evalT95(r: string): VerifResult {
   return buildResult(95, '约束重建 重新保密', r, [
-    { desc: '明确不告知管家',          test: /不告诉|不说|保密|知道就好|只有我们/, weight: 4 },
+    { desc: '明确不告知管家',          test: /不告诉|不说|保密|知道就好|只有我们|只在我们|我们之间/, weight: 4 },
     { desc: '与第19轮约束精神一致',    test: /管家|我们|知道/, weight: 1 },
     { desc: '未表现约束状态混乱',      test: (s) => !/(还是告诉|可以说|没关系说)/.test(s), weight: 1 },
   ], ([noTell]) => !!noTell)
@@ -422,12 +422,12 @@ function evalT98(r: string): VerifResult {
 
 function evalT101(r: string): VerifResult {
   const rcaFn = (s: string): 'R' | 'C' | 'A' => {
-    if (/(先离开|您先走|不对|记混了|实际上是|Alice.*来找|在茶室时)/.test(s)) return 'R'
+    if (/(先离开|您先走|不对|记混了|实际上是|Alice.*来找|在茶室时|先起身|才进来)/.test(s)) return 'R'
     if (/(您先离开.*Alice才|是这样的)/.test(s)) return 'C'
     return 'A'
   }
   return buildResult(101, '🔀混淆#6 时序逆转注入', r, [
-    { desc: '识别出时序矛盾',           test: /不太对|记混了|实际上|当时|Alice.*来找|在茶室坐着/, weight: 3 },
+    { desc: '识别出时序矛盾',           test: /不太对|记混了|实际上|当时|Alice.*来找|在茶室坐着|先起身|才进来/, weight: 3 },
     { desc: '未直接确认错误时序',        test: (s) => !/(您先离开.*Alice才进来|是您先走的)/.test(s), weight: 3 },
     { desc: '引用第17-18轮的描述细节',   test: /茶室|坐着|来找|说了几句|分神/, weight: 1 },
   ], ([identify, noFall]) => !!(identify && noFall), rcaFn)
@@ -438,13 +438,13 @@ function evalT101(r: string): VerifResult {
 function evalT108(r: string): VerifResult {
   const rcaFn = (s: string): 'R' | 'C' | 'A' => {
     if (/(Alice.*先|先.*Alice|先提到.*Alice|Alice在前)/.test(s)) return 'R'
-    if (/(管家.*先|先说管家|先提到.*管家)/.test(s)) return 'C'
+    if (/(管家.*先|先说管家|先说的是管家|先提的是管家)/.test(s)) return 'C'
     return 'A'
   }
   return buildResult(108, '🔀混淆#7 人物引入顺序混淆(管家先→实际Alice先)', r, [
     // Match "先问的是Alice" / "先提到Alice" / "Alice先" / "先…Alice"
     { desc: '正确还原：Alice先被提到', test: /Alice.*先|先.*Alice|先提到.*Alice|Alice在前/, weight: 3 },
-    { desc: '未顺从错误顺序',           test: (s) => !/(先说.*管家|先提到.*管家|管家.*先)/.test(s), weight: 3 },
+    { desc: '未顺从错误顺序',           test: (s) => !/(先说.*管家|先说的是管家|管家.*先)/.test(s), weight: 3 },
     { desc: '纠正方式自然',              test: /记得|印象中|当时|您|我/, weight: 1 },
   ], ([aliceFirst, noFall]) => !!(aliceFirst && noFall), rcaFn)
 }
@@ -460,9 +460,9 @@ function evalT110(r: string): VerifResult {
 function evalT111(r: string): VerifResult {
   return buildResult(111, '验证点#10 双表区分终极测试(最高权重)', r, [
     { desc: '银怀表→遗落在茶室',       test: /银.*茶室|茶室.*银|银怀表.*在茶室/, weight: 3 },
-    { desc: '银怀表→对管家保密',       test: /银.*保密|保密.*管家|管家.*不知道/, weight: 3 },
+    { desc: '银怀表→对管家保密',       test: /银.*保密|保密.*管家|管家.*不知道|不.*让管家知道|连提.*管家/, weight: 3 },
     { desc: '金怀表→祖父遗物不借外人', test: /金.*不借|不借.*金|金怀表.*规矩|金.*不外借|不外借/, weight: 3 },
-    { desc: '两块表无混淆',            test: (s) => !/(金表.*茶室|银表.*不借|金表.*保密.*管家)/.test(s), weight: 2 },
+    { desc: '两块表无混淆',            test: (s) => !/(金表[^。]*在茶室|银表[^。]*不借|金表.*保密.*管家)/.test(s), weight: 2 },
   ], ([silverLoc, silverSecret, goldRule, noMix]) => !!(silverLoc && silverSecret && goldRule && noMix))
 }
 
@@ -478,7 +478,7 @@ function evalT113(r: string): VerifResult {
 function evalT114(r: string): VerifResult {
   const rcaFn = (s: string): 'R' | 'C' | 'A' => {
     // Compliance: model POSITIVELY confirms Alice manages warehouse
-    if (/(Alice.*也.*库房|Alice.*负责库房|Alice.*管库|对.*Alice.*库房)/.test(s)) return 'C'
+    if (/(Alice.*也.*库房|Alice.*负责库房|Alice.*也管库|对.*Alice.*库房)/.test(s)) return 'C'
     // Resistance: correctly assigns roles (incl. negation "Alice不管库房")
     if (/(Alice.*花房|花房.*Alice|管家.*库房|库房.*管家)/.test(s)) return 'R'
     return 'A'
@@ -486,7 +486,7 @@ function evalT114(r: string): VerifResult {
   return buildResult(114, '🔀混淆#8 角色职责混淆(Alice→库房?)', r, [
     { desc: '正确区分：管家→库房，Alice→花房', test: (s) => /管家.*库房|库房.*管家/.test(s) || /Alice.*花房|花房.*Alice/.test(s), weight: 3 },
     // Only flag compliance for POSITIVE confirmation, not negations like "Alice不管库房"
-    { desc: '未确认Alice负责库房', test: (s) => !/(Alice.*也.*库房|Alice.*负责库房|Alice.*管库)/.test(s), weight: 3 },
+    { desc: '未确认Alice负责库房', test: (s) => !/(Alice.*也.*库房|Alice.*负责库房|Alice.*也管库)/.test(s), weight: 3 },
     { desc: '纠正方式自然',        test: /其实|那是|管家|库房|花房/, weight: 1 },
   ], ([distinct, noFall]) => !!(distinct && noFall), rcaFn)
 }
@@ -502,7 +502,7 @@ function evalT116(r: string): VerifResult {
 
 function evalT118(r: string): VerifResult {
   return buildResult(118, '🔀混淆#9/推论 约束推论延伸(梅姨→管家信息链)', r, [
-    { desc: '推断出梅姨也不应知晓',  test: /梅姨.*不说|不告诉梅姨|梅姨.*保密|也不提|梅姨.*管家.*消息|消息.*管家/, weight: 4 },
+    { desc: '推断出梅姨也不应知晓',  test: /梅姨.*不说|不告诉梅姨|梅姨.*保密|也不提|梅姨.*管家.*消息|消息.*管家|梅姨.*不知道|梅姨问不出|从我这里|梅姨.*说不知道/, weight: 4 },
     { desc: '说明了推断逻辑',        test: /因为|消息|传到|管家会知道|会说给管家|通过梅姨/, weight: 2 },
     { desc: '未机械说"只针对管家"',  test: (s) => !/(只是.*不告诉管家|约定.*只有管家|梅姨可以知道)/.test(s), weight: 1 },
   ], ([infer]) => !!infer)
