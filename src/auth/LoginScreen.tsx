@@ -1,13 +1,15 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { useAuth } from './useAuth'
+import { validateToken } from '../api/client'
 
 export function LoginScreen() {
   const { setToken } = useAuth()
   const [input, setInput] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     const trimmed = input.trim()
     if (trimmed.length === 0) {
@@ -15,6 +17,13 @@ export function LoginScreen() {
       return
     }
     setError(null)
+    setIsLoading(true)
+    const result = await validateToken(trimmed)
+    setIsLoading(false)
+    if (!result.ok) {
+      setError(result.error ?? 'Authentication failed')
+      return
+    }
     setToken(trimmed)
   }
 
@@ -40,9 +49,10 @@ export function LoginScreen() {
 
         <button
           type="submit"
-          className="w-full py-2.5 rounded-xl bg-pink-500 text-white font-medium hover:bg-pink-600 transition-colors cursor-pointer"
+          disabled={isLoading}
+          className="w-full py-2.5 rounded-xl bg-pink-500 text-white font-medium hover:bg-pink-600 transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          Connect
+          {isLoading ? 'Verifying…' : 'Connect'}
         </button>
       </form>
     </div>

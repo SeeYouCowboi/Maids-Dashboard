@@ -85,6 +85,20 @@ export async function apiFetch<T = unknown>(path: string, options: RequestInit =
   return res.json() as Promise<T>
 }
 
+export async function validateToken(token: string): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const base = getApiBase()
+    assertOriginSafe(base)
+    const res = await fetch(`${base}/v1/agents`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (res.status === 401) return { ok: false, error: 'Invalid token' }
+    return { ok: true }
+  } catch {
+    return { ok: false, error: 'Cannot reach server' }
+  }
+}
+
 export function apiStream(path: string, body: unknown, signal?: AbortSignal): Promise<Response> {
   const base = getApiBase()
   assertOriginSafe(base)
