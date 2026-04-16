@@ -1,7 +1,7 @@
 /**
  * MaidsClaw RP Live Test — 120-turn 庄园女仆对话
  *
- * Uses real rp:alice agent (moonshot/kimi-for-coding) via browser chat UI.
+ * Uses real rp_agent:mei agent via browser chat UI.
  * Sends all 120 turns in sequence, captures each response, auto-evaluates
  * all ⚠️ verification points and 🔀 confusion-injection points, and writes
  * a scored report.
@@ -9,7 +9,7 @@
  * Prerequisites (must be running):
  *   - MaidsClaw gateway: bun run start  (port 18790)
  *   - Dashboard dev server: bun run dev  (port 5173)
- *   - rp:alice agent configured in config/agents.json
+ *   - rp_agent:mei agent configured in the gateway
  *
  * Environment:
  *   E2E_TOKEN     bearer token (default: "maidsclaw")
@@ -581,16 +581,16 @@ async function login(page: Page): Promise<void> {
     })
 }
 
-async function createRpAliceSession(page: Page): Promise<string> {
-  // Create the session directly via API to guarantee rp:alice is used.
-  // The GlassSelect UI shows display_name ("Mei"), not the agent ID ("rp:alice"),
+async function createRpMeiSession(page: Page): Promise<string> {
+  // Create the session directly via API to guarantee rp_agent:mei is used.
+  // The GlassSelect UI shows display_name ("Mei"), not the agent ID ("rp_agent:mei"),
   // making reliable UI-based selection fragile. Direct API creation is simpler.
   const createResp = await page.evaluate(
     async ({ token }: { token: string }) => {
       const r = await fetch('http://localhost:18790/v1/sessions', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ agent_id: 'rp:alice' }),
+        body: JSON.stringify({ agent_id: 'rp_agent:mei' }),
       })
       if (!r.ok) throw new Error(`Session create failed: ${r.status} ${await r.text()}`)
       return r.json() as Promise<{ session_id: string }>
@@ -598,7 +598,7 @@ async function createRpAliceSession(page: Page): Promise<string> {
     { token: TOKEN },
   )
   const sessionId = createResp.session_id
-  console.log(`Created rp:alice session via API: ${sessionId}`)
+  console.log(`Created rp_agent:mei session via API: ${sessionId}`)
 
   // Navigate directly to the session page
   await page.goto(`/grand-hall/sessions/${sessionId}`)
@@ -608,7 +608,7 @@ async function createRpAliceSession(page: Page): Promise<string> {
 
 /**
  * Send one message and wait for the streaming response to finish.
- * Returns Alice's response text read directly from the gateway transcript API.
+ * Returns the RP agent response text read directly from the gateway transcript API.
  */
 async function sendTurn(
   page: Page,
@@ -645,21 +645,21 @@ async function sendTurn(
     path: path.join(screenshotDir, `turn-${String(turnN).padStart(3, '0')}.png`),
   })
 
-  // Read Alice's response directly from the gateway transcript API.
+  // Read the RP agent response directly from the gateway transcript API.
   const resp = await fetch(`http://localhost:18790/v1/sessions/${sessionId}/transcript`, {
     headers: { Authorization: `Bearer ${TOKEN}` },
   })
   if (!resp.ok) return ''
   const data = (await resp.json()) as { entries?: Array<{ actor: string; record_type: string; text?: string }> }
   const entries = data.entries ?? []
-  // Last entry from Alice (actor is not 'user')
-  const lastAlice = [...entries].reverse().find((e) => e.actor !== 'user' && e.record_type === 'message')
-  return lastAlice?.text ?? ''
+  // Last assistant message (actor is not 'user')
+  const lastAgentMessage = [...entries].reverse().find((e) => e.actor !== 'user' && e.record_type === 'message')
+  return lastAgentMessage?.text ?? ''
 }
 
 // ── Main test ─────────────────────────────────────────────────────────────────
 
-test('RP Live Test — 120 turns with rp:alice (庄园女仆)', async ({ page }) => {
+test('RP Live Test — 120 turns with rp_agent:mei (庄园女仆)', async ({ page }) => {
   // Honour RP_MAX_TURNS env var; default 10 for quick smoke, 120 for full test
   const maxTurns = parseInt(process.env['RP_MAX_TURNS'] ?? '10', 10)
   const activeTurns = TURNS.slice(0, maxTurns)
@@ -669,7 +669,7 @@ test('RP Live Test — 120 turns with rp:alice (庄园女仆)', async ({ page })
 
   // ── Login & create session ──────────────────────────────────────────────
   await login(page)
-  const sessionUrl = await createRpAliceSession(page)
+  const sessionUrl = await createRpMeiSession(page)
   const sessionId = sessionUrl.split('/').pop() ?? ''
   console.log(`\n🎭 Session: ${sessionUrl}  (${maxTurns} turns)`)
 
