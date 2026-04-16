@@ -68,3 +68,4 @@ e2e/screenshots
 .playwright-mcp
 rp-70turn-log.txt
 cognition-snapshot.yml
+.vite

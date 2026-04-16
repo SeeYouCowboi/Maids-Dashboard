@@ -21,6 +21,7 @@ export default defineConfig({
     emptyOutDir: true,
   },
   resolve: {
+    dedupe: ['react', 'react-dom', '@tanstack/react-query'],
     alias: {
       '@maidsclaw/contracts': path.resolve(__dirname, '../MaidsClaw/src/contracts/cockpit'),
     },
