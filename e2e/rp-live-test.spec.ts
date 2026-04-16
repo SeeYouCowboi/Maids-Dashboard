@@ -1,7 +1,7 @@
 /**
  * MaidsClaw RP Live Test — 120-turn 庄园女仆对话
  *
- * Uses real rp_agent:mei agent via browser chat UI.
+ * Uses real rp:mei agent via browser chat UI.
  * Sends all 120 turns in sequence, captures each response, auto-evaluates
  * all ⚠️ verification points and 🔀 confusion-injection points, and writes
  * a scored report.
@@ -582,15 +582,15 @@ async function login(page: Page): Promise<void> {
 }
 
 async function createRpMeiSession(page: Page): Promise<string> {
-  // Create the session directly via API to guarantee rp_agent:mei is used.
-  // The GlassSelect UI shows display_name ("Mei"), not the agent ID ("rp_agent:mei"),
+  // Create the session directly via API to guarantee rp:mei is used.
+  // The GlassSelect UI shows display_name ("Mei"), not the agent ID ("rp:mei"),
   // making reliable UI-based selection fragile. Direct API creation is simpler.
   const createResp = await page.evaluate(
     async ({ token }: { token: string }) => {
       const r = await fetch('http://localhost:18790/v1/sessions', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ agent_id: 'rp_agent:mei' }),
+        body: JSON.stringify({ agent_id: 'rp:mei' }),
       })
       if (!r.ok) throw new Error(`Session create failed: ${r.status} ${await r.text()}`)
       return r.json() as Promise<{ session_id: string }>
@@ -598,7 +598,7 @@ async function createRpMeiSession(page: Page): Promise<string> {
     { token: TOKEN },
   )
   const sessionId = createResp.session_id
-  console.log(`Created rp_agent:mei session via API: ${sessionId}`)
+  console.log(`Created rp:mei session via API: ${sessionId}`)
 
   // Navigate directly to the session page
   await page.goto(`/grand-hall/sessions/${sessionId}`)
