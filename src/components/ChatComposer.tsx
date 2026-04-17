@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { Send, Square, AlertCircle } from 'lucide-react'
+import { Send, Square, AlertCircle, RefreshCw } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import type { TurnStreamRequest } from '../contracts'
 import { streamTurn } from '../stream/turn-stream'
@@ -60,9 +60,12 @@ export function ChatComposer({ sessionId, disabled, onSend, onStreamUpdate }: Ch
 
   const handleSend = useCallback(() => {
     const text = input.trim()
+    // Allow send from 'idle' or 'error' states; block during active streaming.
     if (!text || streamState === 'streaming') return
 
-    setInput('')
+    // Keep `input` populated — only clear on confirmed success (onDone).
+    // This makes Retry a no-op re-invocation and preserves the user's text
+    // if the gateway's talker retries exhaust and we surface a terminal error.
     setErrorMessage(undefined)
     setStreamState('streaming')
     streamAccumRef.current = ''
@@ -87,6 +90,8 @@ export function ChatComposer({ sessionId, disabled, onSend, onStreamUpdate }: Ch
         }
       },
       () => {
+        abortRef.current = null
+        setInput('')
         setStreamState('idle')
         // Pass the final accumulated text (not empty) so the parent keeps
         // the bubble visible until the real transcript entry arrives.
@@ -94,8 +99,13 @@ export function ChatComposer({ sessionId, disabled, onSend, onStreamUpdate }: Ch
         void qc.invalidateQueries({ queryKey: queryKeys.sessions.transcript(sessionId) })
       },
       (err) => {
+        abortRef.current = null
         setErrorMessage(err.message)
         setStreamState('error')
+        // Input stays as-is; textarea stays locked (error → disabled).
+        // User must explicitly Retry or Dismiss before continuing.
+        void qc.invalidateQueries({ queryKey: queryKeys.sessions.transcript(sessionId) })
+        void qc.invalidateQueries({ queryKey: queryKeys.sessions.all })
         onStreamUpdate?.('', false)
       },
     )
@@ -105,6 +115,11 @@ export function ChatComposer({ sessionId, disabled, onSend, onStreamUpdate }: Ch
       onStreamUpdate?.('', false)
     }
   }, [input, streamState, sessionId, qc, onSend, onStreamUpdate])
+
+  const handleDismissError = useCallback(() => {
+    setErrorMessage(undefined)
+    setStreamState('idle')
+  }, [])
 
   const handleAbort = useCallback(() => {
     abortRef.current?.()
@@ -123,7 +138,11 @@ export function ChatComposer({ sessionId, disabled, onSend, onStreamUpdate }: Ch
     [handleSend],
   )
 
-  const isInputDisabled = disabled === true || streamState === 'streaming'
+  // Lock textarea while streaming AND after terminal error.
+  // Unlocks only on success (streamState → 'idle' via onDone) or on explicit
+  // Dismiss. This enforces: textarea enabled ⇔ previous turn committed.
+  const isInputDisabled =
+    disabled === true || streamState === 'streaming' || streamState === 'error'
   const canSend = input.trim().length > 0 && !isInputDisabled
 
   return (
@@ -137,11 +156,20 @@ export function ChatComposer({ sessionId, disabled, onSend, onStreamUpdate }: Ch
             className="flex items-center gap-2 bg-red-50/80 border border-red-200 rounded-xl px-3 py-2 text-xs text-red-600"
           >
             <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-            {errorMessage}
+            <span className="flex-1 truncate">{errorMessage}</span>
             <button
               type="button"
-              onClick={() => setErrorMessage(undefined)}
-              className="ml-auto font-semibold hover:text-red-800 transition-colors"
+              onClick={handleSend}
+              disabled={input.trim().length === 0}
+              className="inline-flex items-center gap-1 font-semibold hover:text-red-800 disabled:opacity-50 disabled:pointer-events-none transition-colors"
+            >
+              <RefreshCw className="w-3 h-3" />
+              Retry
+            </button>
+            <button
+              type="button"
+              onClick={handleDismissError}
+              className="font-semibold hover:text-red-800 transition-colors"
             >
               Dismiss
             </button>

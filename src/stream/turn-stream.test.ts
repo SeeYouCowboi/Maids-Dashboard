@@ -36,6 +36,25 @@ function makeSseResponseChunked(chunks: string[]): Response {
   })
 }
 
+function makeHangingSseResponse(chunks: string[]): Response {
+  const encoder = new TextEncoder()
+  let idx = 0
+  const stream = new ReadableStream({
+    pull(controller) {
+      if (idx < chunks.length) {
+        controller.enqueue(encoder.encode(chunks[idx]!))
+        idx++
+        return
+      }
+      return new Promise(() => {})
+    },
+  })
+  return new Response(stream, {
+    status: 200,
+    headers: { 'Content-Type': 'text/event-stream' },
+  })
+}
+
 beforeEach(() => {
   vi.restoreAllMocks()
 })
@@ -203,5 +222,49 @@ describe('streamTurn', () => {
     expect(onDone).not.toHaveBeenCalled()
     // Error message should be forwarded
     expect((onError.mock.calls[0]![0] as Error).message).toBe('Model unavailable')
+  })
+
+  it('fires onError when the stream closes before done/error', async () => {
+    const chunks: string[] = []
+    const onError = vi.fn()
+    const onDone = vi.fn()
+    const response = makeSseResponse(['data: {"type":"delta","data":{"text":"partial"}}\n\n'])
+
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(response)
+
+    streamTurn('sess-1', {}, (chunk) => chunks.push(chunk), onDone, onError)
+
+    await vi.waitFor(() => expect(onError).toHaveBeenCalledOnce(), { timeout: 2000 })
+
+    expect(chunks).toHaveLength(1)
+    expect(onDone).not.toHaveBeenCalled()
+    expect((onError.mock.calls[0]![0] as Error).message).toContain('closed before done/error')
+  })
+
+  it('fires onError when the stream goes idle before the next event', async () => {
+    const chunks: string[] = []
+    const onError = vi.fn()
+    const onDone = vi.fn()
+    const response = makeHangingSseResponse([
+      'data: {"type":"delta","data":{"text":"hello"}}\n\n',
+    ])
+
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(response)
+
+    streamTurn(
+      'sess-1',
+      {},
+      (chunk) => chunks.push(chunk),
+      onDone,
+      onError,
+      undefined,
+      { idleTimeoutMs: 20 },
+    )
+
+    await vi.waitFor(() => expect(onError).toHaveBeenCalledOnce(), { timeout: 2000 })
+
+    expect(chunks).toHaveLength(1)
+    expect(onDone).not.toHaveBeenCalled()
+    expect((onError.mock.calls[0]![0] as Error).message).toContain('timed out')
   })
 })
