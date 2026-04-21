@@ -10,7 +10,7 @@
 import { SQL } from "bun"
 
 const url =
-  process.env.PG_APP_URL ?? "postgres://maidsclaw:maidsclaw@127.0.0.1:55432/maidsclaw_app"
+  process.env.PG_APP_URL ?? "postgres://maidsclaw:maidsclaw@127.0.0.1:5432/maidsclaw_app"
 const sql = new SQL(url)
 
 const RUNTIME_TABLES = [
@@ -38,11 +38,15 @@ const RUNTIME_TABLES = [
   "private_cognition_events",
   "area_state_events",
   "world_state_events",
+  "scene_area_fact_events",
+  "scene_world_fact_events",
   "private_cognition_current",
   "area_state_current",
   "area_narrative_current",
   "world_state_current",
   "world_narrative_current",
+  "scene_area_fact_current",
+  "scene_world_fact_current",
   "search_docs_private",
   "search_docs_area",
   "search_docs_world",

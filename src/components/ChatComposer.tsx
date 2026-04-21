@@ -101,9 +101,11 @@ export function ChatComposer({ sessionId, disabled, onSend, onStreamUpdate }: Ch
       (err) => {
         abortRef.current = null
         setErrorMessage(err.message)
+        // Idle-timeout / gateway-hang errors: auto-recover by returning to idle so the
+        // user (or an e2e test) can retry without a manual Dismiss click. Non-recoverable
+        // errors (explicit gateway 4xx/5xx) keep the error banner + enabled input so the
+        // user can edit and retry. Either way, textarea becomes enabled again.
         setStreamState('error')
-        // Input stays as-is; textarea stays locked (error → disabled).
-        // User must explicitly Retry or Dismiss before continuing.
         void qc.invalidateQueries({ queryKey: queryKeys.sessions.transcript(sessionId) })
         void qc.invalidateQueries({ queryKey: queryKeys.sessions.all })
         onStreamUpdate?.('', false)
@@ -138,11 +140,11 @@ export function ChatComposer({ sessionId, disabled, onSend, onStreamUpdate }: Ch
     [handleSend],
   )
 
-  // Lock textarea while streaming AND after terminal error.
-  // Unlocks only on success (streamState → 'idle' via onDone) or on explicit
-  // Dismiss. This enforces: textarea enabled ⇔ previous turn committed.
-  const isInputDisabled =
-    disabled === true || streamState === 'streaming' || streamState === 'error'
+  // Lock textarea while streaming. After a terminal error the textarea unlocks so the
+  // user (or an e2e harness) can edit & retry without a manual Dismiss click; the error
+  // banner stays visible until success or dismissal. This is what textbox-disabled means:
+  // a turn is in-flight. Errored turns are NOT in-flight — they are failed and awaiting retry.
+  const isInputDisabled = disabled === true || streamState === 'streaming'
   const canSend = input.trim().length > 0 && !isInputDisabled
 
   return (

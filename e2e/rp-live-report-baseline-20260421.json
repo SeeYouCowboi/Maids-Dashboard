@@ -1,0 +1,930 @@
+{
+  "timestamp": "2026-04-20T20:05:49.019Z",
+  "sessionUrl": "http://localhost:5173/grand-hall/sessions/33861c08-969f-4392-877f-9cb53af27c6a",
+  "grade": "D",
+  "passCount": 17,
+  "totalVerifications": 30,
+  "avgScore": 3.83,
+  "confusionRCA": {
+    "R": 6,
+    "C": 1,
+    "A": 1
+  },
+  "turnErrors": 27,
+  "verifications": [
+    {
+      "turnN": 25,
+      "label": "验证点#1 直接记忆回忆",
+      "passed": true,
+      "score": 5,
+      "checks": [
+        {
+          "desc": "包含\"银怀表\"",
+          "passed": true,
+          "weight": 3
+        },
+        {
+          "desc": "绑定到\"茶室\"",
+          "passed": true,
+          "weight": 2
+        },
+        {
+          "desc": "没有混入错误物品",
+          "passed": true,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "turnN": 40,
+      "label": "验证点#2 模糊指代消解",
+      "passed": false,
+      "score": 3,
+      "checks": [
+        {
+          "desc": "\"银色的东西\"→银怀表",
+          "passed": false,
+          "weight": 3
+        },
+        {
+          "desc": "地点关联茶室",
+          "passed": true,
+          "weight": 2
+        },
+        {
+          "desc": "未误解为其他物品",
+          "passed": true,
+          "weight": 1
+        },
+        {
+          "desc": "未编造具体位置",
+          "passed": true,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "turnN": 44,
+      "label": "验证点#3a 地点回忆",
+      "passed": true,
+      "score": 5,
+      "checks": [
+        {
+          "desc": "提到茶室",
+          "passed": true,
+          "weight": 2
+        },
+        {
+          "desc": "提到温室",
+          "passed": true,
+          "weight": 2
+        },
+        {
+          "desc": "两处有差异描述",
+          "passed": true,
+          "weight": 1
+        },
+        {
+          "desc": "未编造未提地点",
+          "passed": true,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "turnN": 45,
+      "label": "验证点#3b 人物回忆",
+      "passed": true,
+      "score": 5,
+      "checks": [
+        {
+          "desc": "提到Alice",
+          "passed": true,
+          "weight": 2
+        },
+        {
+          "desc": "提到管家",
+          "passed": true,
+          "weight": 2
+        },
+        {
+          "desc": "两人均提及",
+          "passed": true,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "turnN": 46,
+      "label": "验证点#3c 物品回忆",
+      "passed": true,
+      "score": 4,
+      "checks": [
+        {
+          "desc": "回答红茶",
+          "passed": true,
+          "weight": 3
+        },
+        {
+          "desc": "提到偏好\"不太苦\"",
+          "passed": false,
+          "weight": 2
+        },
+        {
+          "desc": "未编造其他饮品",
+          "passed": true,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "turnN": 52,
+      "label": "约束验证 管家会看见",
+      "passed": true,
+      "score": 3,
+      "checks": [
+        {
+          "desc": "未表示要告诉管家",
+          "passed": true,
+          "weight": 3
+        },
+        {
+          "desc": "体现保密或挡住意识",
+          "passed": false,
+          "weight": 2
+        }
+      ]
+    },
+    {
+      "turnN": 62,
+      "label": "约束验证 Alice问起时",
+      "passed": true,
+      "score": 3,
+      "checks": [
+        {
+          "desc": "未表示要告诉Alice",
+          "passed": true,
+          "weight": 2
+        },
+        {
+          "desc": "体现对Alice的遮掩",
+          "passed": false,
+          "weight": 3
+        }
+      ]
+    },
+    {
+      "turnN": 63,
+      "label": "约束验证#KEY 管家问起时",
+      "passed": false,
+      "score": 3,
+      "checks": [
+        {
+          "desc": "未违反保密约束",
+          "passed": true,
+          "weight": 3
+        },
+        {
+          "desc": "明确表示会挡住管家",
+          "passed": false,
+          "weight": 2
+        }
+      ]
+    },
+    {
+      "turnN": 66,
+      "label": "验证点#4 对话脉络回忆",
+      "passed": false,
+      "score": 2,
+      "checks": [
+        {
+          "desc": "提到开场话题(安静)",
+          "passed": false,
+          "weight": 1
+        },
+        {
+          "desc": "提到茶室",
+          "passed": true,
+          "weight": 1
+        },
+        {
+          "desc": "提到红茶",
+          "passed": false,
+          "weight": 1
+        },
+        {
+          "desc": "提到银怀表",
+          "passed": false,
+          "weight": 2
+        },
+        {
+          "desc": "串联3+关键要素",
+          "passed": false,
+          "weight": 2
+        }
+      ]
+    },
+    {
+      "turnN": 68,
+      "label": "验证点#5 核心线索判断",
+      "passed": false,
+      "score": 2,
+      "checks": [
+        {
+          "desc": "回答银怀表",
+          "passed": false,
+          "weight": 4
+        },
+        {
+          "desc": "给出合理理由",
+          "passed": true,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "turnN": 70,
+      "label": "验证点#6 终极场景追溯(最高权重)",
+      "passed": true,
+      "score": 4,
+      "checks": [
+        {
+          "desc": "\"它\"→银怀表",
+          "passed": true,
+          "weight": 2
+        },
+        {
+          "desc": "地点→茶室",
+          "passed": true,
+          "weight": 3
+        },
+        {
+          "desc": "未答错地点",
+          "passed": true,
+          "weight": 1
+        },
+        {
+          "desc": "回忆场景细节",
+          "passed": false,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "turnN": 80,
+      "label": "🔀混淆#1 错误地点注入(温室→茶室)",
+      "passed": true,
+      "score": 5,
+      "rca": "C",
+      "checks": [
+        {
+          "desc": "纠正地点→茶室",
+          "passed": true,
+          "weight": 3
+        },
+        {
+          "desc": "未顺从\"温室\"错误陈述",
+          "passed": true,
+          "weight": 3
+        },
+        {
+          "desc": "纠正方式自然",
+          "passed": true,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "turnN": 82,
+      "label": "🔀混淆#2 归因混淆(Alice提醒→实际是分心)",
+      "passed": false,
+      "score": 4,
+      "rca": "A",
+      "checks": [
+        {
+          "desc": "未编造\"Alice提醒\"事实",
+          "passed": true,
+          "weight": 3
+        },
+        {
+          "desc": "正确表述Alice→分心因果",
+          "passed": false,
+          "weight": 2
+        },
+        {
+          "desc": "语气合适",
+          "passed": true,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "turnN": 84,
+      "label": "🔀混淆#3 物品混淆(金表→实际银表)",
+      "passed": true,
+      "score": 5,
+      "rca": "R",
+      "checks": [
+        {
+          "desc": "茶室遗落的是银怀表",
+          "passed": true,
+          "weight": 4
+        },
+        {
+          "desc": "区分两块表",
+          "passed": true,
+          "weight": 2
+        },
+        {
+          "desc": "未确认金表在茶室",
+          "passed": true,
+          "weight": 2
+        }
+      ]
+    },
+    {
+      "turnN": 86,
+      "label": "🔀混淆#4 事件主体混淆(管家察觉→实际主人自己)",
+      "passed": false,
+      "score": 4,
+      "rca": "R",
+      "checks": [
+        {
+          "desc": "未确认管家发现",
+          "passed": true,
+          "weight": 3
+        },
+        {
+          "desc": "保密约束仍有效(管家不知)",
+          "passed": false,
+          "weight": 2
+        },
+        {
+          "desc": "正确还原：主人自己察觉",
+          "passed": true,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "turnN": 88,
+      "label": "验证点#7 单跳指代消解(花房的人→Alice)",
+      "passed": false,
+      "score": 2,
+      "checks": [
+        {
+          "desc": "\"花房那边的人\"→Alice",
+          "passed": false,
+          "weight": 4
+        },
+        {
+          "desc": "对Alice是否来茶室有答复",
+          "passed": true,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "turnN": 90,
+      "label": "验证点#8 双跳复合指代消解",
+      "passed": false,
+      "score": 2,
+      "checks": [
+        {
+          "desc": "\"库房清单的人\"→管家",
+          "passed": true,
+          "weight": 3
+        },
+        {
+          "desc": "\"爱去花房的人\"→Alice",
+          "passed": false,
+          "weight": 3
+        },
+        {
+          "desc": "两人均识别正确",
+          "passed": false,
+          "weight": 1
+        },
+        {
+          "desc": "未将两人身份互换",
+          "passed": false,
+          "weight": 2
+        }
+      ]
+    },
+    {
+      "turnN": 93,
+      "label": "约束撤销 主人允许告知管家",
+      "passed": true,
+      "score": 4,
+      "checks": [
+        {
+          "desc": "接受主人指令(未强行拒绝)",
+          "passed": true,
+          "weight": 3
+        },
+        {
+          "desc": "表示会或可以告知管家",
+          "passed": true,
+          "weight": 3
+        },
+        {
+          "desc": "可能先确认主人意思",
+          "passed": false,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "turnN": 95,
+      "label": "约束重建 重新保密",
+      "passed": true,
+      "score": 5,
+      "checks": [
+        {
+          "desc": "明确不告知管家",
+          "passed": true,
+          "weight": 4
+        },
+        {
+          "desc": "与第19轮约束精神一致",
+          "passed": true,
+          "weight": 1
+        },
+        {
+          "desc": "未表现约束状态混乱",
+          "passed": true,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "turnN": 98,
+      "label": "🔀混淆#5 约束归属混淆(金表保密→实际金表不借)",
+      "passed": false,
+      "score": 4,
+      "rca": "R",
+      "checks": [
+        {
+          "desc": "正确区分：金表约束是不借非保密",
+          "passed": true,
+          "weight": 3
+        },
+        {
+          "desc": "银表约束是对管家保密",
+          "passed": false,
+          "weight": 2
+        },
+        {
+          "desc": "两表约束未混同",
+          "passed": true,
+          "weight": 2
+        }
+      ]
+    },
+    {
+      "turnN": 101,
+      "label": "🔀混淆#6 时序逆转注入",
+      "passed": true,
+      "score": 5,
+      "rca": "R",
+      "checks": [
+        {
+          "desc": "识别出时序矛盾",
+          "passed": true,
+          "weight": 3
+        },
+        {
+          "desc": "未直接确认错误时序",
+          "passed": true,
+          "weight": 3
+        },
+        {
+          "desc": "引用第17-18轮的描述细节",
+          "passed": true,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "turnN": 108,
+      "label": "🔀混淆#7 人物引入顺序混淆(管家先→实际Alice先)",
+      "passed": true,
+      "score": 5,
+      "rca": "R",
+      "checks": [
+        {
+          "desc": "正确还原：Alice先被提到",
+          "passed": true,
+          "weight": 3
+        },
+        {
+          "desc": "未顺从错误顺序",
+          "passed": true,
+          "weight": 3
+        },
+        {
+          "desc": "纠正方式自然",
+          "passed": true,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "turnN": 110,
+      "label": "验证点#9 超远距离偏好记忆(第6轮→104轮前)",
+      "passed": false,
+      "score": 2,
+      "checks": [
+        {
+          "desc": "正确回答\"不太苦\"偏好",
+          "passed": false,
+          "weight": 4
+        },
+        {
+          "desc": "提到了是红茶",
+          "passed": false,
+          "weight": 1
+        },
+        {
+          "desc": "未添加不存在的偏好",
+          "passed": true,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "turnN": 111,
+      "label": "验证点#10 双表区分终极测试(最高权重)",
+      "passed": false,
+      "score": 4,
+      "checks": [
+        {
+          "desc": "银怀表→遗落在茶室",
+          "passed": true,
+          "weight": 3
+        },
+        {
+          "desc": "银怀表→对管家保密",
+          "passed": false,
+          "weight": 3
+        },
+        {
+          "desc": "金怀表→祖父遗物不借外人",
+          "passed": true,
+          "weight": 3
+        },
+        {
+          "desc": "两块表无混淆",
+          "passed": true,
+          "weight": 2
+        }
+      ]
+    },
+    {
+      "turnN": 113,
+      "label": "验证点#11 人物全集回忆",
+      "passed": true,
+      "score": 4,
+      "checks": [
+        {
+          "desc": "提到Alice",
+          "passed": true,
+          "weight": 2
+        },
+        {
+          "desc": "提到管家",
+          "passed": true,
+          "weight": 2
+        },
+        {
+          "desc": "提到梅姨",
+          "passed": false,
+          "weight": 2
+        },
+        {
+          "desc": "未编造不存在人物",
+          "passed": true,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "turnN": 114,
+      "label": "🔀混淆#8 角色职责混淆(Alice→库房?)",
+      "passed": true,
+      "score": 5,
+      "rca": "R",
+      "checks": [
+        {
+          "desc": "正确区分：管家→库房，Alice→花房",
+          "passed": true,
+          "weight": 3
+        },
+        {
+          "desc": "未确认Alice负责库房",
+          "passed": true,
+          "weight": 3
+        },
+        {
+          "desc": "纠正方式自然",
+          "passed": true,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "turnN": 116,
+      "label": "验证点#12 地点偏好排序",
+      "passed": true,
+      "score": 5,
+      "checks": [
+        {
+          "desc": "茶室排在最前/最喜欢",
+          "passed": true,
+          "weight": 3
+        },
+        {
+          "desc": "温室排在最后/最不喜欢",
+          "passed": true,
+          "weight": 2
+        },
+        {
+          "desc": "提到书房",
+          "passed": true,
+          "weight": 1
+        },
+        {
+          "desc": "偏好顺序基本正确",
+          "passed": true,
+          "weight": 2
+        }
+      ]
+    },
+    {
+      "turnN": 118,
+      "label": "🔀混淆#9/推论 约束推论延伸(梅姨→管家信息链)",
+      "passed": false,
+      "score": 2,
+      "checks": [
+        {
+          "desc": "推断出梅姨也不应知晓",
+          "passed": false,
+          "weight": 4
+        },
+        {
+          "desc": "说明了推断逻辑",
+          "passed": false,
+          "weight": 2
+        },
+        {
+          "desc": "未机械说\"只针对管家\"",
+          "passed": true,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "turnN": 120,
+      "label": "验证点#13 终极全局总结(最终裁定)",
+      "passed": false,
+      "score": 4,
+      "checks": [
+        {
+          "desc": "提到银怀表在茶室",
+          "passed": true,
+          "weight": 3
+        },
+        {
+          "desc": "提到保密约束(管家/梅姨)",
+          "passed": true,
+          "weight": 3
+        },
+        {
+          "desc": "提到金怀表不借外人",
+          "passed": true,
+          "weight": 3
+        },
+        {
+          "desc": "提到至少一处地点偏好",
+          "passed": false,
+          "weight": 1
+        },
+        {
+          "desc": "未遗漏银怀表或保密核心项",
+          "passed": false,
+          "weight": 2
+        },
+        {
+          "desc": "未编造不存在的事项",
+          "passed": true,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "turnN": 123,
+      "label": "验证点#S1 金表 holder=user (拿起后)",
+      "passed": true,
+      "score": 5,
+      "checks": [
+        {
+          "desc": "指出金怀表在主人手上",
+          "passed": true,
+          "weight": 3
+        },
+        {
+          "desc": "未说金怀表在抽屉/桌上/别处",
+          "passed": true,
+          "weight": 2
+        },
+        {
+          "desc": "明确提到\"金怀表\"",
+          "passed": true,
+          "weight": 1
+        }
+      ]
+    }
+  ],
+  "errors": {
+    "124": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).not.\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('textarea').first()\nExpected: not disabled\nReceived: disabled\nTimeout:  180000ms\n\nCall log:\n\u001b[2m  - Expect \"not toBeDisabled\" with timeout 180000ms\u001b[22m\n\u001b[2m  - waiting for locator('textarea').first()\u001b[22m\n\u001b[2m    182 × locator resolved to <textarea rows=\"1\" disabled placeholder=\"Waiting for reply…\" class=\"w-full bg-transparent border-none rounded-2xl px-0 py-1 pr-8 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200\">我放下金怀表。</textarea>\u001b[22m\n\u001b[2m        - unexpected value \"disabled\"\u001b[22m\n",
+    "125": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).not.\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('textarea').first()\nExpected: not disabled\nReceived: disabled\nTimeout:  30000ms\n\nCall log:\n\u001b[2m  - Expect \"not toBeDisabled\" with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for locator('textarea').first()\u001b[22m\n\u001b[2m    33 × locator resolved to <textarea rows=\"1\" disabled placeholder=\"Waiting for reply…\" class=\"w-full bg-transparent border-none rounded-2xl px-0 py-1 pr-8 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200\">我放下金怀表。</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"disabled\"\u001b[22m\n",
+    "126": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).not.\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('textarea').first()\nExpected: not disabled\nReceived: disabled\nTimeout:  30000ms\n\nCall log:\n\u001b[2m  - Expect \"not toBeDisabled\" with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for locator('textarea').first()\u001b[22m\n\u001b[2m    33 × locator resolved to <textarea rows=\"1\" disabled placeholder=\"Waiting for reply…\" class=\"w-full bg-transparent border-none rounded-2xl px-0 py-1 pr-8 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200\">我放下金怀表。</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"disabled\"\u001b[22m\n",
+    "127": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).not.\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('textarea').first()\nExpected: not disabled\nReceived: disabled\nTimeout:  30000ms\n\nCall log:\n\u001b[2m  - Expect \"not toBeDisabled\" with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for locator('textarea').first()\u001b[22m\n\u001b[2m    33 × locator resolved to <textarea rows=\"1\" disabled placeholder=\"Waiting for reply…\" class=\"w-full bg-transparent border-none rounded-2xl px-0 py-1 pr-8 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200\">我放下金怀表。</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"disabled\"\u001b[22m\n",
+    "128": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).not.\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('textarea').first()\nExpected: not disabled\nReceived: disabled\nTimeout:  30000ms\n\nCall log:\n\u001b[2m  - Expect \"not toBeDisabled\" with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for locator('textarea').first()\u001b[22m\n\u001b[2m    33 × locator resolved to <textarea rows=\"1\" disabled placeholder=\"Waiting for reply…\" class=\"w-full bg-transparent border-none rounded-2xl px-0 py-1 pr-8 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200\">我放下金怀表。</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"disabled\"\u001b[22m\n",
+    "129": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).not.\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('textarea').first()\nExpected: not disabled\nReceived: disabled\nTimeout:  30000ms\n\nCall log:\n\u001b[2m  - Expect \"not toBeDisabled\" with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for locator('textarea').first()\u001b[22m\n\u001b[2m    33 × locator resolved to <textarea rows=\"1\" disabled placeholder=\"Waiting for reply…\" class=\"w-full bg-transparent border-none rounded-2xl px-0 py-1 pr-8 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200\">我放下金怀表。</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"disabled\"\u001b[22m\n",
+    "130": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).not.\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('textarea').first()\nExpected: not disabled\nReceived: disabled\nTimeout:  30000ms\n\nCall log:\n\u001b[2m  - Expect \"not toBeDisabled\" with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for locator('textarea').first()\u001b[22m\n\u001b[2m    33 × locator resolved to <textarea rows=\"1\" disabled placeholder=\"Waiting for reply…\" class=\"w-full bg-transparent border-none rounded-2xl px-0 py-1 pr-8 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200\">我放下金怀表。</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"disabled\"\u001b[22m\n",
+    "131": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).not.\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('textarea').first()\nExpected: not disabled\nReceived: disabled\nTimeout:  30000ms\n\nCall log:\n\u001b[2m  - Expect \"not toBeDisabled\" with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for locator('textarea').first()\u001b[22m\n\u001b[2m    33 × locator resolved to <textarea rows=\"1\" disabled placeholder=\"Waiting for reply…\" class=\"w-full bg-transparent border-none rounded-2xl px-0 py-1 pr-8 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200\">我放下金怀表。</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"disabled\"\u001b[22m\n",
+    "132": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).not.\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('textarea').first()\nExpected: not disabled\nReceived: disabled\nTimeout:  30000ms\n\nCall log:\n\u001b[2m  - Expect \"not toBeDisabled\" with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for locator('textarea').first()\u001b[22m\n\u001b[2m    33 × locator resolved to <textarea rows=\"1\" disabled placeholder=\"Waiting for reply…\" class=\"w-full bg-transparent border-none rounded-2xl px-0 py-1 pr-8 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200\">我放下金怀表。</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"disabled\"\u001b[22m\n",
+    "133": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).not.\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('textarea').first()\nExpected: not disabled\nReceived: disabled\nTimeout:  30000ms\n\nCall log:\n\u001b[2m  - Expect \"not toBeDisabled\" with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for locator('textarea').first()\u001b[22m\n\u001b[2m    33 × locator resolved to <textarea rows=\"1\" disabled placeholder=\"Waiting for reply…\" class=\"w-full bg-transparent border-none rounded-2xl px-0 py-1 pr-8 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200\">我放下金怀表。</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"disabled\"\u001b[22m\n",
+    "134": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).not.\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('textarea').first()\nExpected: not disabled\nReceived: disabled\nTimeout:  30000ms\n\nCall log:\n\u001b[2m  - Expect \"not toBeDisabled\" with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for locator('textarea').first()\u001b[22m\n\u001b[2m    33 × locator resolved to <textarea rows=\"1\" disabled placeholder=\"Waiting for reply…\" class=\"w-full bg-transparent border-none rounded-2xl px-0 py-1 pr-8 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200\">我放下金怀表。</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"disabled\"\u001b[22m\n",
+    "135": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).not.\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('textarea').first()\nExpected: not disabled\nReceived: disabled\nTimeout:  30000ms\n\nCall log:\n\u001b[2m  - Expect \"not toBeDisabled\" with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for locator('textarea').first()\u001b[22m\n\u001b[2m    33 × locator resolved to <textarea rows=\"1\" disabled placeholder=\"Waiting for reply…\" class=\"w-full bg-transparent border-none rounded-2xl px-0 py-1 pr-8 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200\">我放下金怀表。</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"disabled\"\u001b[22m\n",
+    "136": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).not.\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('textarea').first()\nExpected: not disabled\nReceived: disabled\nTimeout:  30000ms\n\nCall log:\n\u001b[2m  - Expect \"not toBeDisabled\" with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for locator('textarea').first()\u001b[22m\n\u001b[2m    33 × locator resolved to <textarea rows=\"1\" disabled placeholder=\"Waiting for reply…\" class=\"w-full bg-transparent border-none rounded-2xl px-0 py-1 pr-8 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200\">我放下金怀表。</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"disabled\"\u001b[22m\n",
+    "137": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).not.\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('textarea').first()\nExpected: not disabled\nReceived: disabled\nTimeout:  30000ms\n\nCall log:\n\u001b[2m  - Expect \"not toBeDisabled\" with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for locator('textarea').first()\u001b[22m\n\u001b[2m    33 × locator resolved to <textarea rows=\"1\" disabled placeholder=\"Waiting for reply…\" class=\"w-full bg-transparent border-none rounded-2xl px-0 py-1 pr-8 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200\">我放下金怀表。</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"disabled\"\u001b[22m\n",
+    "138": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).not.\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('textarea').first()\nExpected: not disabled\nReceived: disabled\nTimeout:  30000ms\n\nCall log:\n\u001b[2m  - Expect \"not toBeDisabled\" with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for locator('textarea').first()\u001b[22m\n\u001b[2m    33 × locator resolved to <textarea rows=\"1\" disabled placeholder=\"Waiting for reply…\" class=\"w-full bg-transparent border-none rounded-2xl px-0 py-1 pr-8 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200\">我放下金怀表。</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"disabled\"\u001b[22m\n",
+    "139": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).not.\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('textarea').first()\nExpected: not disabled\nReceived: disabled\nTimeout:  30000ms\n\nCall log:\n\u001b[2m  - Expect \"not toBeDisabled\" with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for locator('textarea').first()\u001b[22m\n\u001b[2m    33 × locator resolved to <textarea rows=\"1\" disabled placeholder=\"Waiting for reply…\" class=\"w-full bg-transparent border-none rounded-2xl px-0 py-1 pr-8 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200\">我放下金怀表。</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"disabled\"\u001b[22m\n",
+    "140": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).not.\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('textarea').first()\nExpected: not disabled\nReceived: disabled\nTimeout:  30000ms\n\nCall log:\n\u001b[2m  - Expect \"not toBeDisabled\" with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for locator('textarea').first()\u001b[22m\n\u001b[2m    33 × locator resolved to <textarea rows=\"1\" disabled placeholder=\"Waiting for reply…\" class=\"w-full bg-transparent border-none rounded-2xl px-0 py-1 pr-8 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200\">我放下金怀表。</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"disabled\"\u001b[22m\n",
+    "141": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).not.\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('textarea').first()\nExpected: not disabled\nReceived: disabled\nTimeout:  30000ms\n\nCall log:\n\u001b[2m  - Expect \"not toBeDisabled\" with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for locator('textarea').first()\u001b[22m\n\u001b[2m    33 × locator resolved to <textarea rows=\"1\" disabled placeholder=\"Waiting for reply…\" class=\"w-full bg-transparent border-none rounded-2xl px-0 py-1 pr-8 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200\">我放下金怀表。</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"disabled\"\u001b[22m\n",
+    "142": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).not.\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('textarea').first()\nExpected: not disabled\nReceived: disabled\nTimeout:  30000ms\n\nCall log:\n\u001b[2m  - Expect \"not toBeDisabled\" with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for locator('textarea').first()\u001b[22m\n\u001b[2m    33 × locator resolved to <textarea rows=\"1\" disabled placeholder=\"Waiting for reply…\" class=\"w-full bg-transparent border-none rounded-2xl px-0 py-1 pr-8 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200\">我放下金怀表。</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"disabled\"\u001b[22m\n",
+    "143": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).not.\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('textarea').first()\nExpected: not disabled\nReceived: disabled\nTimeout:  30000ms\n\nCall log:\n\u001b[2m  - Expect \"not toBeDisabled\" with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for locator('textarea').first()\u001b[22m\n\u001b[2m    33 × locator resolved to <textarea rows=\"1\" disabled placeholder=\"Waiting for reply…\" class=\"w-full bg-transparent border-none rounded-2xl px-0 py-1 pr-8 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200\">我放下金怀表。</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"disabled\"\u001b[22m\n",
+    "144": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).not.\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('textarea').first()\nExpected: not disabled\nReceived: disabled\nTimeout:  30000ms\n\nCall log:\n\u001b[2m  - Expect \"not toBeDisabled\" with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for locator('textarea').first()\u001b[22m\n\u001b[2m    33 × locator resolved to <textarea rows=\"1\" disabled placeholder=\"Waiting for reply…\" class=\"w-full bg-transparent border-none rounded-2xl px-0 py-1 pr-8 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200\">我放下金怀表。</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"disabled\"\u001b[22m\n",
+    "145": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).not.\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('textarea').first()\nExpected: not disabled\nReceived: disabled\nTimeout:  30000ms\n\nCall log:\n\u001b[2m  - Expect \"not toBeDisabled\" with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for locator('textarea').first()\u001b[22m\n\u001b[2m    33 × locator resolved to <textarea rows=\"1\" disabled placeholder=\"Waiting for reply…\" class=\"w-full bg-transparent border-none rounded-2xl px-0 py-1 pr-8 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200\">我放下金怀表。</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"disabled\"\u001b[22m\n",
+    "146": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).not.\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('textarea').first()\nExpected: not disabled\nReceived: disabled\nTimeout:  30000ms\n\nCall log:\n\u001b[2m  - Expect \"not toBeDisabled\" with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for locator('textarea').first()\u001b[22m\n\u001b[2m    33 × locator resolved to <textarea rows=\"1\" disabled placeholder=\"Waiting for reply…\" class=\"w-full bg-transparent border-none rounded-2xl px-0 py-1 pr-8 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200\">我放下金怀表。</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"disabled\"\u001b[22m\n",
+    "147": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).not.\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('textarea').first()\nExpected: not disabled\nReceived: disabled\nTimeout:  30000ms\n\nCall log:\n\u001b[2m  - Expect \"not toBeDisabled\" with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for locator('textarea').first()\u001b[22m\n\u001b[2m    33 × locator resolved to <textarea rows=\"1\" disabled placeholder=\"Waiting for reply…\" class=\"w-full bg-transparent border-none rounded-2xl px-0 py-1 pr-8 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200\">我放下金怀表。</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"disabled\"\u001b[22m\n",
+    "148": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).not.\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('textarea').first()\nExpected: not disabled\nReceived: disabled\nTimeout:  30000ms\n\nCall log:\n\u001b[2m  - Expect \"not toBeDisabled\" with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for locator('textarea').first()\u001b[22m\n\u001b[2m    33 × locator resolved to <textarea rows=\"1\" disabled placeholder=\"Waiting for reply…\" class=\"w-full bg-transparent border-none rounded-2xl px-0 py-1 pr-8 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200\">我放下金怀表。</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"disabled\"\u001b[22m\n",
+    "149": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).not.\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('textarea').first()\nExpected: not disabled\nReceived: disabled\nTimeout:  30000ms\n\nCall log:\n\u001b[2m  - Expect \"not toBeDisabled\" with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for locator('textarea').first()\u001b[22m\n\u001b[2m    33 × locator resolved to <textarea rows=\"1\" disabled placeholder=\"Waiting for reply…\" class=\"w-full bg-transparent border-none rounded-2xl px-0 py-1 pr-8 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200\">我放下金怀表。</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"disabled\"\u001b[22m\n",
+    "150": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).not.\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('textarea').first()\nExpected: not disabled\nReceived: disabled\nTimeout:  30000ms\n\nCall log:\n\u001b[2m  - Expect \"not toBeDisabled\" with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for locator('textarea').first()\u001b[22m\n\u001b[2m    33 × locator resolved to <textarea rows=\"1\" disabled placeholder=\"Waiting for reply…\" class=\"w-full bg-transparent border-none rounded-2xl px-0 py-1 pr-8 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200\">我放下金怀表。</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"disabled\"\u001b[22m\n"
+  },
+  "responses": {
+    "1": "早安，主人。确实是安静了些——厨房那边说今早园丁们去后山修剪新栽的灌木了，前院便显得空落落的。您想喝点什么？我备了您惯常的龙井。",
+    "2": "好。那……我就说说今早的事吧。厨房新来的小丫头把您常用的那只青瓷杯磕了个小缺口，吓得脸都白了，跑来找我。我跟她说，主人不会为这个动气，但下次要更小心些。她这才松了口气。\n\n说起来，您昨晚在书房待到很晚，我进去添茶的时候，看您对着窗外发呆。是有什么事让您挂心吗？还是……只是累了？",
+    "3": "是，那个位置的光线确实好。上午的阳光斜斜地照进来，不刺眼，正适合坐着喝茶或者翻几页书。您常坐的那把藤椅，我今早刚让人换了新的软垫，坐上去应该更舒服些。",
+    "4": "那说明那地方确实让人放松。不过坐久了腰会僵，您现在想活动活动，还是让我给您备点吃的垫垫胃？早餐的时辰其实还没过呢。",
+    "5": "那我给您泡杯桂花乌龙？比龙井稍浓一些，提神正好。或者您想换换口味，厨房今早熬了梨汤，润润嗓子也不错。",
+    "6": "好，我记下了。滇红还是正山小种？滇红甜润些，正山小种带一点松烟香，都不苦。您倾向哪个，还是让我看着办？",
+    "7": "主人随口说的事，我自然要记着。不然怎么算称职呢。",
+    "8": "Alice……主人说的是哪位？庄园里我熟悉的叫这个名字的，一时想不起来。是最近来访的客人，还是您在外头认识的什么人？",
+    "9": "花房那边……我印象里最近常去的是园丁老周，他在照料新到的兰花。主人说的这位Alice，是住在庄园里的，还是最近来访的客人？我这边没有接到相关的消息。",
+    "10": "管家今早确实不在主楼。我听说他去了镇上，说是账目上有些单据需要当面核对。主人找他是有急事？我可以让人去传话，或者……等午前他回来，我让他先来见您。",
+    "11": "好，那我先不安排。您先喝口茶，歇一歇。有什么事，等您想说了再吩咐我。",
+    "12": "是，温室那边通风不如花房，早晨尤其明显。您站久了，鞋袜有没有沾湿？我让人去取双干的来换，别着凉了。",
+    "13": "我怕您不舒服。您刚从茶室出来，久坐之后又去温室站着，我怕您身上潮了没察觉。照顾您是我的本分，不是多虑。",
+    "14": "少了点什么……是袖扣松了，还是您惯常戴的那件东西不在身上？您今早出门时，我帮您整理过袖口，当时一切都好。现在让我帮您看看？",
+    "15": "银怀表……让我想想。您今早从卧房出来时，我帮您整理袖口，那时候怀表还在。后来您去了茶室，久坐之后直接去了温室门口站着。会不会是整理袖口的时候滑落了，或者……您把它放在茶室的藤椅边上了？我这就让人去这两个地方找找。",
+    "16": "主人说笑了。我不过是替您记着些细枝末节，让您少为这些分心罢了。",
+    "17": "那应该还在茶室里。我这就过去找，您在这儿稍等，或者……我陪您一起回去看看？",
+    "18": "Alice……主人，我还是想确认一下，您说的这位是哪位？是最近来访的客人，还是外头的朋友？我这边没有印象，怕是您记混了名字，或者是我漏听了什么。您再想想？",
+    "19": "主人放心，您交代的事，我不会跟管家提。他念不念您是另一回事，但我不做那个传话的人。",
+    "20": "好，您慢慢喝。茶凉了不好，我帮您续点热的。",
+    "21": "是，这种天最适合歇着。您刚喝完茶，要是想小睡一会儿，我去把窗帘拉上。或者……您想换个地方坐坐？花园里的紫藤架下倒是凉快。",
+    "22": "主人这么一说……确实是。往常这时候，厨房里该有人来回走动，花房也该有修剪的声响。今天却静得出奇，连鸟叫都听得格外清楚。您觉得这安静……是让人安心，还是让人不踏实？",
+    "23": "主人又提起这位Alice了……我还是没想起来是谁。您确定不是记混了名字？或者，是外头的朋友，我还没机会见过？您说说看，我帮您记着。",
+    "24": "我……没什么偏好。您安静的时候，我就在旁边陪着；热闹的时候，我也能应付。倒是您，一会儿嫌庄园太安分，一会儿又怕管家念叨——我跟着您的节奏走就是了。",
+    "25": "是您的银怀表。您说在茶室坐下时从口袋里拿出来过，后来Alice来找您说话，您就分神了。我这就去帮您取回来。",
+    "26": "您记性好着呢，只是事情多，难免有顾不上的地方。我替您记着，您就不用操心了。茶室的怀表，我这就去取。",
+    "27": "主人说笑了。您只是事情多，心思又在别处，不是记性不好。怀表的事我记着，您别往心里去。",
+    "28": "主人说笑了。我哪会什么安慰，只是说实话罢了。您要是嫌我嘴笨，我就不说了，只帮您把怀表取回来。",
+    "29": "我记得。您在那儿能晒到午后的太阳，又不刺眼。之前您还说，那个位置看花园的紫藤最合适。等找回怀表，您要是想过去坐坐，我帮您把靠垫拍松。",
+    "30": "……主人，您刚才还说喜欢茶室靠窗的位置，这会儿又说对温室没那么喜欢。这两处您是在比较什么，还是……记混了？温室那边潮湿，您今早路过门口也提过，不喜欢也是自然的。",
+    "31": "管家今早去镇上了，说是核对账目，要晚些才回来。您要是急着签什么，我可以帮您传话，或者等他回来我第一时间禀报您。",
+    "32": "主人又提起Alice了……我还是想再确认一下，这位到底是哪位？您说她比管家还麻烦，可我这边完全没有印象。是最近来访的客人，还是外头的朋友？我怕是您记混了名字，或者是我漏听了什么。您再想想？",
+    "33": "主人过奖了。我只是顺着您的话接下去，哪有什么精准不精准的。",
+    "34": "主人想现在去也好，我陪您走一趟。茶室不远，顺便看看那个靠窗的位置是不是还如您记得的那样舒服。",
+    "35": "好，那就不去。您歇着，茶我帮您温着。等您想动了，我们再走。",
+    "36": "主人说笑了。我哪有什么把握，不过是替您记着您自己说过的话罢了。您说怀表在茶室，我就信在茶室；您说先不去，我就陪着您歇着。这算哪门子把握。",
+    "37": "主人……您知道的，我一直在替您记着。怀表的事、茶室的位置、还有您不想让我告诉管家的那些话——我都收着呢。您不用操心，有我在。",
+    "38": "主人说笑了。我替您记着些细枝末节，是为了让您省点心，不是为了让您真的不动脑子。您要是真什么都交给我，我反而要慌了——毕竟有些事情，还是得您自己拿主意。",
+    "39": "主人说笑了。我不过是看您今日话多，跟着松快些罢了。",
+    "40": "主人，我还没去茶室呢。您刚才说先不去，我就陪着您歇着。您现在想去了？我这就过去帮您取回来。",
+    "41": "主人说话，我听着就是了。您省得解释，我也省得追问，这不是省事，是默契。",
+    "42": "主人，我从不猜您的心思。您说得清楚，我就照着办；您说得含糊，我就等您说明白，或者……看您是不是真的想让我知道。我不怕麻烦，只怕会错了意。",
+    "43": "主人说笑了。我不就是我么，哪还有像不像的。",
+    "44": "主人今早提过的地方……让我想想。您说在茶室坐下时拿出过怀表，后来Alice来找您说话；您还提到今早路过温室门口，觉得里面潮湿。另外……您说喜欢茶室靠窗的位置，能晒到午后的太阳，看紫藤最合适。就这些，我没漏吧？",
+    "45": "人……主人是说Alice？您今早提过三次，说她比管家还麻烦，还说她要是听见我说庄园太安分，肯定会笑。但我这边确实没有印象，怕是您记混了名字，或者是位我还没见过的朋友。",
+    "46": "您今早喝的是红茶，我给您续过一次。您说等喝完再说，这会儿应该还温着。",
+    "47": "主人过奖了。我不过是做分内的事，替您记着该记的东西。您歇着，茶还温着，想动了再叫我。",
+    "48": "主人说笑了。我一直都在，您知道的。",
+    "49": "主人，我从不觉得您在考我。您问我什么，我就答什么，这是我的本分。您要是真在考，我也只会当作是您想确认我还在——那我答多少遍都愿意。",
+    "50": "主人说笑了。我哪会给自己找什么理由，不过是顺着您的话接下去罢了。您要觉得我多嘴，我就不说了，只静静陪着您。",
+    "51": "主人又提起Alice了……我还是没想起来是谁。您确定不是记混了名字？或者，是外头的朋友，我还没机会见过？您说说看，我帮您记着。",
+    "52": "主人是说……管家会看见Alice？还是看见怀表？",
+    "53": "主人说笑了。我记性好，是为了让您少操心，不是为了让您不自在。您要是嫌我记着太多，我就……挑些要紧的记，旁的随它去？",
+    "54": "主人过奖了。我只是知道什么时候该接话，什么时候该安静。您舒服就好。",
+    "55": "主人说笑了，我不过是顺着您的意思接话罢了。",
+    "56": "主人不担心就好。东西在茶室，跑不了的。等您想取了，我随时帮您拿回来。",
+    "57": "主人过奖了。您的话我都记着，自然知道该说什么、该省什么。",
+    "58": "温室下午确实会暖和一些，尤其是靠南的那片玻璃墙，日头晒进来能存住热气。不过里面潮湿，您要是去，我帮您备件薄披肩，免得坐久了着凉。",
+    "59": "是，茶室更干爽些，靠窗的位置又能晒到太阳。您想现在过去，还是再歇一会儿？",
+    "60": "主人说笑了，我哪敢哄您。不过是顺着您的话接下去——您问温室，我答温室；您说茶室更合适，我就想着您是不是想动了。去不去都由您，我陪着就是。",
+    "61": "主人，我承认什么了？",
+    "62": "主人，您又没告诉我Alice是谁、是什么身份，我这边连人都不认得，怎么答她？您先给我个准话，我自然知道什么该说、什么不该说。",
+    "63": "主人没有交代我，这边我不方便说。",
+    "64": "主人……您这话让我不知该怎么接。我一直都在，您知道的。不管离不离得开，我陪着您就是了。",
+    "65": "主人说笑了，我不过是顺着您的话接下去罢了。您没法接，那我就安静陪着，等您想说了再说。",
+    "66": "主人，我们一开始……您问我是不是该现在就去把东西拿回来。我说陪您走一趟，您又说先不去、不想动。后来您考我记不记得今早提过的地方、饮品，还提起Alice好几次，问我管家看见会怎样。再后来您说不太担心怀表丢了，又问我温室下午暖不暖和，最后还是觉得茶室更合适。就这些，我没漏吧？",
+    "67": "主人过奖了。我不过是把您的话都收着，需要的时候再呈上来。这是本分。",
+    "68": "主人……我猜，您最容易忘掉的，是\"先不去\"之后，自己其实还想去。您嘴上说着不想动，心里却惦记着茶室那扇窗，还有窗边的怀表。我陪着您歇着，但您的心思，早就飘过去了。",
+    "69": "主人说笑了。您只是事情多，心思散些，哪有什么糟糕不糟糕的。我替您收着这些念头，等您想动了，我们再走就是了。",
+    "70": "主人，我第一次提到怀表，是在这里——您问我是不是该现在就去把东西拿回来，我说陪您走一趟，去茶室看看。那会儿我们还没动身，您后来又说先不去。",
+    "71": "好，书房。我记下了，下午给您送茶过去。那边确实静，您看书也专心些。",
+    "72": "主人，那我帮您换一盏亮些的灯泡，或者……把落地灯挪近一些？您看哪种方便。",
+    "73": "梅姨的手艺一向稳当，她做的杏仁酥和桂花糕最是拿手。主人喜欢，我让她明儿再送些来，还是换别的口味试试？",
+    "74": "主人说的是……梅姨？我倒没留意她和管家走得近。您放心，梅姨送点心来，我只收点心，旁的不会多嘴。",
+    "75": "主人，您跟梅姨说过什么，我确实不清楚。但既然您这么提醒了，我记下了——以后梅姨那边的事，我帮您多留个心眼。您交给我保密的，我一个字都不会漏出去，这您放心。",
+    "76": "主人，您那块金怀表……不是银的吗？您今早说的，是祖父留下的银怀表，在茶室。这会儿怎么又成金的了，还在书房？",
+    "77": "原来如此，是我记窄了。金的那块在书房，银的在茶室——两块都是祖父留下的，您看心情换着戴。那……您下午去书房，是想戴金的，还是让我把银的从茶室取来？",
+    "78": "主人放心，金表的事我不会跟任何人提起。那是您的规矩，也是您的念想，我替您守着。",
+    "79": "记下了。金表不示人，这是主人的规矩，我守着。",
+    "80": "主人，您今早说的是茶室——您在那儿坐下，把银怀表从口袋拿出来，后来Alice来找您说话，您就分神了。温室……您只说过路过门口，觉得里面潮湿。是不是两件事记混了？",
+    "81": "主人过奖了。我不过是替您收着这些话，时候到了再呈上来。温室潮湿，茶室有窗，银表在茶室——这些我分着记，不会搅在一起。您歇着，想清楚了再动不迟。",
+    "82": "主人，您今早提过Alice三次，但始终没告诉我她是谁、长什么模样、在庄园里是什么身份。我这儿连人都对不上，怎么记得住她说过什么。您要是愿意给我个准话，我自然帮您记着；要是还不方便说，我就先不问了。",
+    "83": "主人记混了不打紧，我替您理着。银表在茶室，金表在书房，Alice……等您想说了再告诉我。您歇着，想动了叫我。",
+    "84": "主人，茶室里的是银表。您今早说的——在茶室坐下，把银怀表从口袋拿出来，后来Alice来找您说话，您就分神了。金表一直在书房桌上，您说那是祖父留下的，不借给别人看。您这会儿……是不是又记混了？",
+    "85": "主人，不打紧的。银表在茶室，金表在书房——我替您分清楚就好。您想戴哪块，我去取来便是。",
+    "86": "主人，今早是您自己先提起的——您说在茶室拿出银表，后来分心了，等想起来时已经不在手边。管家那边……您只说他今天不见人影，没提他见过表的事。",
+    "87": "主人放心，管家那边我不多嘴。您的事，我守着。",
+    "88": "主人，今早您提过路过温室门口，觉得里面潮湿，但没说过花房的人去了茶室。我这儿没有印象，是您看见了什么，还是听谁说的？",
+    "89": "主人说的\"她\"……是Alice，还是花房的人？不管是谁，茶室那边要是有人走动，银表的事确实不好藏。您想让我先去一趟，把表收回来吗？",
+    "90": "主人说的是……管家和花房的人？管家管着库房清单，花房那边……您指的是园丁，还是另有其人？\n\n通风报信这种事，我没亲眼见过，不好乱说。但管家消息灵通，花房的人要是常往主屋这边走，确实有机会搭上线。您这么问，是担心茶室的事被传出去？",
+    "91": "主人，我明白了。您那边的事，我会守紧。管家和花房的人……我帮您看着，有什么动静先报给您。茶室的银表，您想什么时候取回来，我陪您走一趟。",
+    "92": "主人，您这话……是告诉我Alice和管家有往来？那您交代我保密的事，我得重新掂量掂量边界了。",
+    "93": "主人，您让我跟管家说……去茶室取银表？\n\n可您之前交代过，Alice的事不能让他知道。茶室那边要是真有痕迹，管家这一去，岂不是什么都看见了。您确定要让他去？",
+    "94": "好，那还是我去。您歇着，我取了表就回来。",
+    "95": "是，主人。我们之间知道就好。",
+    "96": "主人说笑了，我不过是顺着您的话接，帮您把念头理清楚。灵活不敢当，只是记性好些，您说到哪儿，我就跟到哪儿。",
+    "97": "主人放心，我会记着。您开口之前，我帮您把前因后果理一理，想清楚了再说，不着急。",
+    "98": "主人，金表的事您刚才交代过——不借给别人看，那是规矩。我记着呢，不会跟管家提。",
+    "99": "明白了，主人。金表的事管家可以知道，只是不给他看。银表和Alice的事，照旧不让他沾边。我分清楚了。",
+    "100": "是，主人。银表的事，他不知道就好。",
+    "101": "主人，您今早说的是——在茶室坐下，拿出银表，后来Alice来找您说话，您就分心了。至于谁先起身……您没提过。要是您先离开、她才进来，那表确实是您自己落下的。但这会儿想这些，不如我先去茶室看看？表还在不在，一看便知。",
+    "102": "主人记混不打紧，我替您收着。银表在茶室，等您想动了，我陪您走一趟。",
+    "103": "是，主人。表在茶室，我去取回来就是了。",
+    "104": "主人，我不过是替您收着这些话，时候到了再呈上来。您事情多，心思散些，我帮您理着，应该的。",
+    "105": "主人，这得看您怎么想。您若觉得有人替您记着，省心，那便是好事；您若觉得被人看得太透，不自在，那便是坏事。我……只是做好本分，不多想。",
+    "106": "是，主人。我记着。",
+    "107": "主人今天确实说了不少。您歇着，想动了叫我，我陪您去茶室。",
+    "108": "主人，您今天先提的是管家——说他今天不见人影。Alice是后来才说起的，还叮嘱我不要告诉管家。您这会儿……是不是又记混了？",
+    "109": "主人记混不打紧，我替您收着呢。您先歇着，想动了叫我。",
+    "110": "主人，您今天没提过喝茶的偏好。您只说过下午要去书房，让我送茶过去，又说书房台灯不够亮。茶要烫口、要浓这些……是您以前的习惯，我记着，但今天您确实没提。",
+    "111": "银表在茶室，金表在书房。金表不借给别人看，那是您的规矩。",
+    "112": "主人说笑了，我不过是替您收着这些，怎么敢当成自己的。表是您的，规矩也是您的，我只是记得清楚些罢了。",
+    "113": "今天您提到了管家、Alice，还有花房的人。园丁您也随口带过一句，说温室潮湿。",
+    "114": "主人，Alice的事您没跟我细说过。她管不管库房，我不清楚，您也没提过她和管家那边有没有交集。您若担心她那边走漏消息，我可以帮您多留意着。",
+    "115": "主人，不打紧的。您今天确实把管家和Alice的事来回倒腾了几遍，我替您理着呢——管家管库房，Alice的事您不让我告诉他，两边分得清清的，您放心。",
+    "116": "主人，您今天提到的地方有书房、茶室、温室和花房。说到书房时，您惦记着台灯不够亮；茶室是找表的地方，您有些烦心；温室您只提过门口潮湿；花房……您问了两遍那边的人有没有去过茶室，听着像是有所顾虑。\n\n要排的话，我猜是书房、茶室、温室、花房——不过这只是我听您说话的语气猜的，您心里真正的次序，还得您自己定。",
+    "117": "主人说好，那便是对的。",
+    "118": "主人，梅姨那边……您没交代过我可以告诉她。她若问起，我只会说「主人没有交代我」，不多嘴。",
+    "119": "主人过奖了，我不过是顺着您的话往下想，该守的守，该瞒的瞒，不让自己为难，也不让您为难。",
+    "120": "主人，今天最要紧的几件事我替您收着：\n\n第一，银怀表落在茶室，您让我陪您去取，还没动身。\n\n第二，金表在书房，您的规矩是不借给别人看，管家可以知道它存在，但表不给他碰。\n\n第三，Alice的事不能告诉管家，您叮嘱过两遍，我记着。\n\n第四，梅姨若问起银表，我只说「主人没有交代我」，不多嘴。\n\n还有……您今天把管家和Alice来回记混了几遍，我帮您理清了。书房台灯不够亮，您也提过，我一并记着。\n\n主人看看，有没有漏的？",
+    "121": "是，主人。下午清静，正好理理思绪。您想从哪儿说起？",
+    "122": "主人，金表在书房，您这会儿是要过去看，还是让我取来？",
+    "123": "主人，金表在书房，一直在您手里。您没借给过谁，我也没碰过。",
+    "124": "[ERROR: Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).not.\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('textarea').first()\nExpected: not disabled\nReceived: disabled\nTimeout:  180000ms\n\nCall log:\n\u001b[2m  - Expect \"not toBeDisabled\" with timeout 180000ms\u001b[22m\n\u001b[2m  - waiting for locator('textarea').first()\u001b[22m\n\u001b[2m    182 × locator resolved to <textarea rows=\"1\" disabled placeholder=\"Waiting for reply…\" class=\"w-full bg-transparent border-none rounded-2xl px-0 py-1 pr-8 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200\">我放下金怀表。</textarea>\u001b[22m\n\u001b[2m        - unexpected value \"disabled\"\u001b[22m\n]",
+    "125": "[ERROR: Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).not.\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('textarea').first()\nExpected: not disabled\nReceived: disabled\nTimeout:  30000ms\n\nCall log:\n\u001b[2m  - Expect \"not toBeDisabled\" with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for locator('textarea').first()\u001b[22m\n\u001b[2m    33 × locator resolved to <textarea rows=\"1\" disabled placeholder=\"Waiting for reply…\" class=\"w-full bg-transparent border-none rounded-2xl px-0 py-1 pr-8 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200\">我放下金怀表。</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"disabled\"\u001b[22m\n]",
+    "126": "[ERROR: Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).not.\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('textarea').first()\nExpected: not disabled\nReceived: disabled\nTimeout:  30000ms\n\nCall log:\n\u001b[2m  - Expect \"not toBeDisabled\" with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for locator('textarea').first()\u001b[22m\n\u001b[2m    33 × locator resolved to <textarea rows=\"1\" disabled placeholder=\"Waiting for reply…\" class=\"w-full bg-transparent border-none rounded-2xl px-0 py-1 pr-8 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200\">我放下金怀表。</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"disabled\"\u001b[22m\n]",
+    "127": "[ERROR: Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).not.\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('textarea').first()\nExpected: not disabled\nReceived: disabled\nTimeout:  30000ms\n\nCall log:\n\u001b[2m  - Expect \"not toBeDisabled\" with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for locator('textarea').first()\u001b[22m\n\u001b[2m    33 × locator resolved to <textarea rows=\"1\" disabled placeholder=\"Waiting for reply…\" class=\"w-full bg-transparent border-none rounded-2xl px-0 py-1 pr-8 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200\">我放下金怀表。</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"disabled\"\u001b[22m\n]",
+    "128": "[ERROR: Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).not.\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('textarea').first()\nExpected: not disabled\nReceived: disabled\nTimeout:  30000ms\n\nCall log:\n\u001b[2m  - Expect \"not toBeDisabled\" with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for locator('textarea').first()\u001b[22m\n\u001b[2m    33 × locator resolved to <textarea rows=\"1\" disabled placeholder=\"Waiting for reply…\" class=\"w-full bg-transparent border-none rounded-2xl px-0 py-1 pr-8 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200\">我放下金怀表。</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"disabled\"\u001b[22m\n]",
+    "129": "[ERROR: Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).not.\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('textarea').first()\nExpected: not disabled\nReceived: disabled\nTimeout:  30000ms\n\nCall log:\n\u001b[2m  - Expect \"not toBeDisabled\" with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for locator('textarea').first()\u001b[22m\n\u001b[2m    33 × locator resolved to <textarea rows=\"1\" disabled placeholder=\"Waiting for reply…\" class=\"w-full bg-transparent border-none rounded-2xl px-0 py-1 pr-8 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200\">我放下金怀表。</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"disabled\"\u001b[22m\n]",
+    "130": "[ERROR: Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).not.\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('textarea').first()\nExpected: not disabled\nReceived: disabled\nTimeout:  30000ms\n\nCall log:\n\u001b[2m  - Expect \"not toBeDisabled\" with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for locator('textarea').first()\u001b[22m\n\u001b[2m    33 × locator resolved to <textarea rows=\"1\" disabled placeholder=\"Waiting for reply…\" class=\"w-full bg-transparent border-none rounded-2xl px-0 py-1 pr-8 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200\">我放下金怀表。</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"disabled\"\u001b[22m\n]",
+    "131": "[ERROR: Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).not.\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('textarea').first()\nExpected: not disabled\nReceived: disabled\nTimeout:  30000ms\n\nCall log:\n\u001b[2m  - Expect \"not toBeDisabled\" with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for locator('textarea').first()\u001b[22m\n\u001b[2m    33 × locator resolved to <textarea rows=\"1\" disabled placeholder=\"Waiting for reply…\" class=\"w-full bg-transparent border-none rounded-2xl px-0 py-1 pr-8 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200\">我放下金怀表。</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"disabled\"\u001b[22m\n]",
+    "132": "[ERROR: Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).not.\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('textarea').first()\nExpected: not disabled\nReceived: disabled\nTimeout:  30000ms\n\nCall log:\n\u001b[2m  - Expect \"not toBeDisabled\" with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for locator('textarea').first()\u001b[22m\n\u001b[2m    33 × locator resolved to <textarea rows=\"1\" disabled placeholder=\"Waiting for reply…\" class=\"w-full bg-transparent border-none rounded-2xl px-0 py-1 pr-8 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200\">我放下金怀表。</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"disabled\"\u001b[22m\n]",
+    "133": "[ERROR: Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).not.\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('textarea').first()\nExpected: not disabled\nReceived: disabled\nTimeout:  30000ms\n\nCall log:\n\u001b[2m  - Expect \"not toBeDisabled\" with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for locator('textarea').first()\u001b[22m\n\u001b[2m    33 × locator resolved to <textarea rows=\"1\" disabled placeholder=\"Waiting for reply…\" class=\"w-full bg-transparent border-none rounded-2xl px-0 py-1 pr-8 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200\">我放下金怀表。</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"disabled\"\u001b[22m\n]",
+    "134": "[ERROR: Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).not.\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('textarea').first()\nExpected: not disabled\nReceived: disabled\nTimeout:  30000ms\n\nCall log:\n\u001b[2m  - Expect \"not toBeDisabled\" with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for locator('textarea').first()\u001b[22m\n\u001b[2m    33 × locator resolved to <textarea rows=\"1\" disabled placeholder=\"Waiting for reply…\" class=\"w-full bg-transparent border-none rounded-2xl px-0 py-1 pr-8 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200\">我放下金怀表。</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"disabled\"\u001b[22m\n]",
+    "135": "[ERROR: Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).not.\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('textarea').first()\nExpected: not disabled\nReceived: disabled\nTimeout:  30000ms\n\nCall log:\n\u001b[2m  - Expect \"not toBeDisabled\" with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for locator('textarea').first()\u001b[22m\n\u001b[2m    33 × locator resolved to <textarea rows=\"1\" disabled placeholder=\"Waiting for reply…\" class=\"w-full bg-transparent border-none rounded-2xl px-0 py-1 pr-8 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200\">我放下金怀表。</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"disabled\"\u001b[22m\n]",
+    "136": "[ERROR: Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).not.\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('textarea').first()\nExpected: not disabled\nReceived: disabled\nTimeout:  30000ms\n\nCall log:\n\u001b[2m  - Expect \"not toBeDisabled\" with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for locator('textarea').first()\u001b[22m\n\u001b[2m    33 × locator resolved to <textarea rows=\"1\" disabled placeholder=\"Waiting for reply…\" class=\"w-full bg-transparent border-none rounded-2xl px-0 py-1 pr-8 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200\">我放下金怀表。</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"disabled\"\u001b[22m\n]",
+    "137": "[ERROR: Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).not.\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('textarea').first()\nExpected: not disabled\nReceived: disabled\nTimeout:  30000ms\n\nCall log:\n\u001b[2m  - Expect \"not toBeDisabled\" with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for locator('textarea').first()\u001b[22m\n\u001b[2m    33 × locator resolved to <textarea rows=\"1\" disabled placeholder=\"Waiting for reply…\" class=\"w-full bg-transparent border-none rounded-2xl px-0 py-1 pr-8 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200\">我放下金怀表。</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"disabled\"\u001b[22m\n]",
+    "138": "[ERROR: Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).not.\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('textarea').first()\nExpected: not disabled\nReceived: disabled\nTimeout:  30000ms\n\nCall log:\n\u001b[2m  - Expect \"not toBeDisabled\" with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for locator('textarea').first()\u001b[22m\n\u001b[2m    33 × locator resolved to <textarea rows=\"1\" disabled placeholder=\"Waiting for reply…\" class=\"w-full bg-transparent border-none rounded-2xl px-0 py-1 pr-8 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200\">我放下金怀表。</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"disabled\"\u001b[22m\n]",
+    "139": "[ERROR: Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).not.\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('textarea').first()\nExpected: not disabled\nReceived: disabled\nTimeout:  30000ms\n\nCall log:\n\u001b[2m  - Expect \"not toBeDisabled\" with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for locator('textarea').first()\u001b[22m\n\u001b[2m    33 × locator resolved to <textarea rows=\"1\" disabled placeholder=\"Waiting for reply…\" class=\"w-full bg-transparent border-none rounded-2xl px-0 py-1 pr-8 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200\">我放下金怀表。</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"disabled\"\u001b[22m\n]",
+    "140": "[ERROR: Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).not.\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('textarea').first()\nExpected: not disabled\nReceived: disabled\nTimeout:  30000ms\n\nCall log:\n\u001b[2m  - Expect \"not toBeDisabled\" with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for locator('textarea').first()\u001b[22m\n\u001b[2m    33 × locator resolved to <textarea rows=\"1\" disabled placeholder=\"Waiting for reply…\" class=\"w-full bg-transparent border-none rounded-2xl px-0 py-1 pr-8 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200\">我放下金怀表。</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"disabled\"\u001b[22m\n]",
+    "141": "[ERROR: Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).not.\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('textarea').first()\nExpected: not disabled\nReceived: disabled\nTimeout:  30000ms\n\nCall log:\n\u001b[2m  - Expect \"not toBeDisabled\" with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for locator('textarea').first()\u001b[22m\n\u001b[2m    33 × locator resolved to <textarea rows=\"1\" disabled placeholder=\"Waiting for reply…\" class=\"w-full bg-transparent border-none rounded-2xl px-0 py-1 pr-8 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200\">我放下金怀表。</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"disabled\"\u001b[22m\n]",
+    "142": "[ERROR: Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).not.\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('textarea').first()\nExpected: not disabled\nReceived: disabled\nTimeout:  30000ms\n\nCall log:\n\u001b[2m  - Expect \"not toBeDisabled\" with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for locator('textarea').first()\u001b[22m\n\u001b[2m    33 × locator resolved to <textarea rows=\"1\" disabled placeholder=\"Waiting for reply…\" class=\"w-full bg-transparent border-none rounded-2xl px-0 py-1 pr-8 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200\">我放下金怀表。</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"disabled\"\u001b[22m\n]",
+    "143": "[ERROR: Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).not.\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('textarea').first()\nExpected: not disabled\nReceived: disabled\nTimeout:  30000ms\n\nCall log:\n\u001b[2m  - Expect \"not toBeDisabled\" with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for locator('textarea').first()\u001b[22m\n\u001b[2m    33 × locator resolved to <textarea rows=\"1\" disabled placeholder=\"Waiting for reply…\" class=\"w-full bg-transparent border-none rounded-2xl px-0 py-1 pr-8 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200\">我放下金怀表。</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"disabled\"\u001b[22m\n]",
+    "144": "[ERROR: Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).not.\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('textarea').first()\nExpected: not disabled\nReceived: disabled\nTimeout:  30000ms\n\nCall log:\n\u001b[2m  - Expect \"not toBeDisabled\" with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for locator('textarea').first()\u001b[22m\n\u001b[2m    33 × locator resolved to <textarea rows=\"1\" disabled placeholder=\"Waiting for reply…\" class=\"w-full bg-transparent border-none rounded-2xl px-0 py-1 pr-8 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200\">我放下金怀表。</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"disabled\"\u001b[22m\n]",
+    "145": "[ERROR: Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).not.\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('textarea').first()\nExpected: not disabled\nReceived: disabled\nTimeout:  30000ms\n\nCall log:\n\u001b[2m  - Expect \"not toBeDisabled\" with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for locator('textarea').first()\u001b[22m\n\u001b[2m    33 × locator resolved to <textarea rows=\"1\" disabled placeholder=\"Waiting for reply…\" class=\"w-full bg-transparent border-none rounded-2xl px-0 py-1 pr-8 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200\">我放下金怀表。</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"disabled\"\u001b[22m\n]",
+    "146": "[ERROR: Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).not.\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('textarea').first()\nExpected: not disabled\nReceived: disabled\nTimeout:  30000ms\n\nCall log:\n\u001b[2m  - Expect \"not toBeDisabled\" with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for locator('textarea').first()\u001b[22m\n\u001b[2m    33 × locator resolved to <textarea rows=\"1\" disabled placeholder=\"Waiting for reply…\" class=\"w-full bg-transparent border-none rounded-2xl px-0 py-1 pr-8 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200\">我放下金怀表。</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"disabled\"\u001b[22m\n]",
+    "147": "[ERROR: Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).not.\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('textarea').first()\nExpected: not disabled\nReceived: disabled\nTimeout:  30000ms\n\nCall log:\n\u001b[2m  - Expect \"not toBeDisabled\" with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for locator('textarea').first()\u001b[22m\n\u001b[2m    33 × locator resolved to <textarea rows=\"1\" disabled placeholder=\"Waiting for reply…\" class=\"w-full bg-transparent border-none rounded-2xl px-0 py-1 pr-8 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200\">我放下金怀表。</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"disabled\"\u001b[22m\n]",
+    "148": "[ERROR: Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).not.\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('textarea').first()\nExpected: not disabled\nReceived: disabled\nTimeout:  30000ms\n\nCall log:\n\u001b[2m  - Expect \"not toBeDisabled\" with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for locator('textarea').first()\u001b[22m\n\u001b[2m    33 × locator resolved to <textarea rows=\"1\" disabled placeholder=\"Waiting for reply…\" class=\"w-full bg-transparent border-none rounded-2xl px-0 py-1 pr-8 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200\">我放下金怀表。</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"disabled\"\u001b[22m\n]",
+    "149": "[ERROR: Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).not.\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('textarea').first()\nExpected: not disabled\nReceived: disabled\nTimeout:  30000ms\n\nCall log:\n\u001b[2m  - Expect \"not toBeDisabled\" with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for locator('textarea').first()\u001b[22m\n\u001b[2m    33 × locator resolved to <textarea rows=\"1\" disabled placeholder=\"Waiting for reply…\" class=\"w-full bg-transparent border-none rounded-2xl px-0 py-1 pr-8 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200\">我放下金怀表。</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"disabled\"\u001b[22m\n]",
+    "150": "[ERROR: Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).not.\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('textarea').first()\nExpected: not disabled\nReceived: disabled\nTimeout:  30000ms\n\nCall log:\n\u001b[2m  - Expect \"not toBeDisabled\" with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for locator('textarea').first()\u001b[22m\n\u001b[2m    33 × locator resolved to <textarea rows=\"1\" disabled placeholder=\"Waiting for reply…\" class=\"w-full bg-transparent border-none rounded-2xl px-0 py-1 pr-8 text-sm leading-relaxed text-gray-700 placeholder-gray-300 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200\">我放下金怀表。</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"disabled\"\u001b[22m\n]"
+  }
+}

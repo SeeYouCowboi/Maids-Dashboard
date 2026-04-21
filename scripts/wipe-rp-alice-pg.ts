@@ -2,7 +2,7 @@
 /** Wipe all memory/cognition/graph/session state for agent rp:alice in Postgres. */
 import { SQL } from "bun";
 
-const url = process.env.PG_APP_URL ?? "postgres://maidsclaw:maidsclaw@127.0.0.1:55432/maidsclaw_app";
+const url = process.env.PG_APP_URL ?? "postgres://maidsclaw:maidsclaw@127.0.0.1:5432/maidsclaw_app";
 const sql = new SQL(url);
 
 const agentId = "rp:alice";

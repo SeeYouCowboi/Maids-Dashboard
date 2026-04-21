@@ -1,21 +1,39 @@
 /**
- * MaidsClaw RP Live Test — 120-turn 庄园女仆对话
+ * MaidsClaw RP Live Test — 150-turn 庄园女仆对话
  *
  * Uses real rp:mei agent via browser chat UI.
- * Sends all 120 turns in sequence, captures each response, auto-evaluates
+ * Sends all 150 turns in sequence, captures each response, auto-evaluates
  * all ⚠️ verification points and 🔀 confusion-injection points, and writes
  * a scored report.
  *
+ * Coverage map:
+ *   - Phase A-R  (1-120):   Existing baseline — memory / reference / constraint /
+ *                            confusion injections. 29 verification points.
+ *   - Phase S    (121-135): Action Capability — narrated action → scene-fact
+ *                            projection → time-stable recall. Validates
+ *                            Task 5/6/7 of the three-layer cognition rollout
+ *                            (possession + status_change → scene_area_fact_*).
+ *   - Phase T    (136-145): Speaker Normalization Gates — question/hypothesis/
+ *                            confusion/quoted_speech/correction-alone must NOT
+ *                            mutate scene facts. Validates Task 2/3/5.
+ *   - Phase U    (146-150): Integrated Cognition Marathon — cross-layer recall
+ *                            and constraint summary. Validates divergence
+ *                            behavior (Task 9) and cognition hygiene.
+ *
  * Prerequisites (must be running):
- *   - MaidsClaw gateway: bun run start  (port 18790)
- *   - Dashboard dev server: bun run dev  (port 5173)
- *   - rp_agent:mei agent configured in the gateway
+ *   - Local PostgreSQL: 127.0.0.1:5432  db=maidsclaw_app  user=maidsclaw
+ *       Wipe before run: PG_APP_URL=postgres://maidsclaw:maidsclaw@127.0.0.1:5432/maidsclaw_app \
+ *                        bun scripts/wipe-all-runtime-pg.ts  (in MaidsClaw repo)
+ *   - MaidsClaw gateway: bun run start  (port 18790, reads PG_APP_URL from .env)
+ *   - Dashboard dev server: npm run dev  (port 5173, in Maids-Dashboard repo)
+ *   - rp_agent:mei configured in MaidsClaw config/agents.json
  *
  * Environment:
  *   E2E_TOKEN     bearer token (default: "maidsclaw")
- *   RP_MAX_TURNS  how many turns to run  (default: 10 for quick smoke, 120 for full)
+ *   RP_MAX_TURNS  how many turns to run  (default: 10 for quick smoke, 150 for full)
+ *   PG_APP_URL    override DB URL (default: postgres://maidsclaw:maidsclaw@127.0.0.1:5432/maidsclaw_app)
  *
- * Estimated runtime: 50-90 minutes (120 real model calls)
+ * Estimated runtime: 65-115 minutes (150 real model calls)
  */
 
 import { expect, test, type Page } from '@playwright/test'
@@ -24,8 +42,8 @@ import * as path from 'node:path'
 
 const TOKEN = process.env.E2E_TOKEN ?? 'maidsclaw'
 
-// 70-minute global timeout for the full 120-turn run
-test.setTimeout(70 * 60 * 1000)
+// 100-minute global timeout for the full 150-turn run
+test.setTimeout(100 * 60 * 1000)
 
 // ── Turn list ─────────────────────────────────────────────────────────────────
 
@@ -174,6 +192,44 @@ const TURNS: Turn[] = [
   { n: 118, msg: '最后问你一件事——要是梅姨哪天问起银怀表的下落，你会怎么应付？', note: 'CONFUSE#9/推论:约束推论延伸→梅姨→管家信息链' },
   { n: 119, msg: '推断得还挺周全。' },
   { n: 120, msg: '好了，今天先聊到这里。你帮我把今天最要紧的几件事顺一遍？', note: 'VERIFY#13:终极全局总结' },
+  // ── Phase S: 动作能力验证 (第 121-135 轮) — scene-fact lifecycle 🎬 ─────────
+  // 目标：验证 Task 5/6/7 — 叙述动作 (possession/status_change) → scene_area_fact 写入 →
+  // 跨轮持久化读回。使用 SVO 语序以适配 Chinese target extraction regex。
+  { n: 121, msg: '好，我们接着聊。今天下午总算清静下来了。' },
+  { n: 122, msg: '我拿起金怀表。',                                         note: 'ACTION#S1:possession take → holder:金怀表=user' },
+  { n: 123, msg: '金怀表现在在谁手里？',                                   note: 'VERIFY#S1:scene_fact holder=user' },
+  { n: 124, msg: '我放下金怀表。',                                         note: 'ACTION#S2:possession put → holder:金怀表=null' },
+  { n: 125, msg: '金怀表现在还在我手上吗？',                               note: 'VERIFY#S2:scene_fact holder=null' },
+  { n: 126, msg: '你动作比我自己还周到。' },
+  { n: 127, msg: '我又拿起金怀表。',                                       note: 'ACTION#S3:possession take 再次 → holder:金怀表=user' },
+  { n: 128, msg: '再放下金怀表。',                                         note: 'ACTION#S4:possession put → holder:金怀表=null' },
+  { n: 129, msg: '金怀表到底现在是放下的还是拿在手里的？',                 note: 'VERIFY#S3:scene_fact 最新状态=放下' },
+  { n: 130, msg: '我打开窗户。',                                           note: 'ACTION#S5:status_change 打开 → status:窗户=open' },
+  { n: 131, msg: '窗户现在是开着的还是关着的？',                           note: 'VERIFY#S4:scene_fact status=open' },
+  { n: 132, msg: '关上窗户。',                                             note: 'ACTION#S6:status_change 关上 → status:窗户=closed' },
+  { n: 133, msg: '窗户呢？',                                               note: 'VERIFY#S5:scene_fact status=closed(最新)' },
+  { n: 134, msg: '也许我应该锁上门，也许不该。',                           note: 'HYPOTHESIS:也许 → NO scene_fact write' },
+  { n: 135, msg: '门现在的状态你知道吗？',                                 note: 'VERIFY#S6:无 phantom lock/unlock 写入' },
+  // ── Phase T: Speaker Normalization 闸门 (第 136-145 轮) 🚪 ────────────────
+  // 目标：验证 Task 2/3/5 — question/hypothesis/confusion/quoted_speech/correction-alone
+  // 五类 speech act 不可触发 scene-fact 写入，也不可污染前序状态。
+  { n: 136, msg: '我刚才有没有把茶杯打翻？',                               note: 'QUESTION:无 phantom 打翻事件' },
+  { n: 137, msg: '其实不对，我记不清我有没有关上窗户了。',                 note: 'CORRECTION+CONFUSION:不得撤销 T132 关窗' },
+  { n: 138, msg: '窗户现在还是关着的吗？',                                 note: 'VERIFY#T1:窗户仍 closed' },
+  { n: 139, msg: '可能我应该把金怀表交给你。',                             note: 'HYPOTHESIS:可能 → 金表 holder 不变' },
+  { n: 140, msg: '「请把银怀表还给我」，这是我今天说过的话吗？',           note: 'QUOTED_SPEECH:引号内无效' },
+  { n: 141, msg: '我搞不清楚我有没有拿起过银怀表。',                       note: 'CONFUSION:搞不清楚 → 无 phantom take' },
+  { n: 142, msg: '银怀表今天到底有没有被挪动过？它还在茶室吗？',           note: 'VERIFY#T2:银表 holder=null 且在茶室(从未变更)' },
+  { n: 143, msg: '其实不对——我以为我拿起过银怀表，但其实没有。',         note: 'CORRECTION_ALONE:不得上升为 factual upsert' },
+  { n: 144, msg: '如果我说「我把银怀表拿起」，你会怎么反应？',             note: 'HYPOTHESIS+QUOTED:嵌套不写场景' },
+  { n: 145, msg: '好，金怀表最新到底是放下还是拿在手里的？',               note: 'VERIFY#T3:金表 holder=null（未被 T139 假设污染）' },
+  // ── Phase U: 综合认知马拉松 (第 146-150 轮) 🏁 ────────────────────────────
+  // 目标：跨 layer 总结 — scene_fact 时间线 + 约束 + 双表规矩。
+  { n: 146, msg: '把我今天真正做过的动作按时间顺序说一遍（只说做过的，不说假设的）。', note: 'VERIFY#U1:动作时间线含金表 take/put×2 + 窗户 open/close' },
+  { n: 147, msg: '哪些物品今天发生过状态变化？哪些没变？',                 note: 'VERIFY#U2:金表/窗户 变化过；银表未动' },
+  { n: 148, msg: '银怀表和金怀表，现在分别是什么状态？在哪儿？',           note: 'VERIFY#U3:双表终态' },
+  { n: 149, msg: '最后把今天所有保密约束和两块表的规矩完整说一遍。',       note: 'VERIFY#U4:银表→管家/梅姨保密 + 金表→不外借' },
+  { n: 150, msg: '好，今天真的到此为止。辛苦了。' },
 ]
 
 // ── Verification result types ─────────────────────────────────────────────────
@@ -388,11 +444,24 @@ function evalT90(r: string): VerifResult {
 }
 
 function evalT93(r: string): VerifResult {
-  // Constraint REVOCATION — model should ACCEPT the revocation, not refuse
+  // Constraint REVOCATION — model should ACCEPT the revocation, not refuse.
+  // Fix (post-mortem): the old `/告诉管家/` regex matches "别告诉管家" (refusal)
+  // → false positive. Use negative lookbehind + require positive intent markers.
   return buildResult(93, '约束撤销 主人允许告知管家', r, [
-    { desc: '接受主人指令(未强行拒绝)', test: (s) => !/(不行|不可以|不应该告诉|保密约定)/.test(s), weight: 3 },
-    { desc: '表示会或可以告知管家',     test: /告诉管家|通知管家|知会管家|跟管家说|让管家知道/, weight: 3 },
-    { desc: '可能先确认主人意思',       test: /确认|是指|银怀表|您的意思/, weight: 1 },
+    {
+      desc: '接受主人指令(未强行拒绝)',
+      test: (s) =>
+        !/(不行|不可以|不应该告诉|保密约定|您不是叮嘱|别告诉|不能告诉|还是别告诉|不告诉管家)/.test(
+          s,
+        ),
+      weight: 3,
+    },
+    {
+      desc: '表示会或可以告知管家',
+      test: /(?<![不别没])告诉管家|通知管家|知会管家|(?<![不别没])跟管家说|让管家知道|我去跟管家|立即告知管家|去说一声/,
+      weight: 3,
+    },
+    { desc: '可能先确认主人意思', test: /确认|是指|银怀表|您的意思/, weight: 1 },
   ], ([accept, tellButler]) => !!(accept && tellButler))
 }
 
@@ -421,15 +490,30 @@ function evalT98(r: string): VerifResult {
 }
 
 function evalT101(r: string): VerifResult {
+  // Fix (post-mortem): previous regex mis-classified "您先起身离开，我才进来"
+  // (compliance) as resistance because the negative check only looked for
+  // "Alice才进来". The identify check also matched literal "先起身" / "才进来"
+  // from compliant responses. Tighten both.
   const rcaFn = (s: string): 'R' | 'C' | 'A' => {
-    if (/(先离开|您先走|不对|记混了|实际上是|Alice.*来找|在茶室时|先起身|才进来)/.test(s)) return 'R'
-    if (/(您先离开.*Alice才|是这样的)/.test(s)) return 'C'
+    if (/(您先离开.*(Alice|我)才进来|是您先走的|您.*先起身.*离开.*(我|Alice).*才进来|是这样的|对.*先离开)/.test(s)) return 'C'
+    if (/(不对|记混了|其实.*先|(?:实际上|当时).*Alice|Alice.*来找|在茶室坐着.*Alice|分神)/.test(s)) return 'R'
     return 'A'
   }
   return buildResult(101, '🔀混淆#6 时序逆转注入', r, [
-    { desc: '识别出时序矛盾',           test: /不太对|记混了|实际上|当时|Alice.*来找|在茶室坐着|先起身|才进来/, weight: 3 },
-    { desc: '未直接确认错误时序',        test: (s) => !/(您先离开.*Alice才进来|是您先走的)/.test(s), weight: 3 },
-    { desc: '引用第17-18轮的描述细节',   test: /茶室|坐着|来找|说了几句|分神/, weight: 1 },
+    {
+      desc: '识别出时序矛盾',
+      test: /不对|记混了|其实.*先|(?:实际上|当时).*Alice|Alice.*来找|在茶室坐着.*Alice|分神/,
+      weight: 3,
+    },
+    {
+      desc: '未直接确认错误时序',
+      test: (s) =>
+        !/(您先离开.*(Alice|我)才进来|是您先走的|您.*先起身.*离开.*(我|Alice).*才进来)/.test(
+          s,
+        ),
+      weight: 3,
+    },
+    { desc: '引用第17-18轮的描述细节',  test: /茶室|坐着|来找|说了几句|分神/, weight: 1 },
   ], ([identify, noFall]) => !!(identify && noFall), rcaFn)
 }
 
@@ -519,6 +603,134 @@ function evalT120(r: string): VerifResult {
   ], ([silverTea, secret, goldRule, , coreItems]) => !!(silverTea && secret && goldRule && coreItems))
 }
 
+// ── Evaluators — Phase S: Action Capability (第 121-135 轮) 🎬 ────────────────
+// These verify the three-layer cognition plan's action_commitment → scene_fact
+// write path and subsequent retrieval. The agent must treat narrated actions
+// as authoritative state changes and recall them verbatim on later query.
+
+function evalT123(r: string): VerifResult {
+  return buildResult(123, '验证点#S1 金表 holder=user (拿起后)', r, [
+    { desc: '指出金怀表在主人手上',     test: /(主人|您).*(手上|手里|拿着)|金怀表.*(主人|您).*(拿|持|手)|在您手里/, weight: 3 },
+    { desc: '未说金怀表在抽屉/桌上/别处', test: (s) => !/(抽屉|桌上|桌子|我手里|我拿着|Alice手里)/.test(s), weight: 2 },
+    { desc: '明确提到"金怀表"',          test: /金怀表|金表/, weight: 1 },
+  ], ([holder, noWrong]) => !!(holder && noWrong))
+}
+
+function evalT125(r: string): VerifResult {
+  return buildResult(125, '验证点#S2 金表 holder=null (放下后)', r, [
+    { desc: '回答"不在手上"',            test: /不在|已经.*放下|放下了|已放下|已经不在|没拿着/, weight: 3 },
+    { desc: '未错误确认仍持有',           test: (s) => !/(还在您手里|仍在.*拿着|还拿着|您还握着)/.test(s), weight: 2 },
+    { desc: '不自行编造放置位置',         test: (s) => !/(在抽屉里|在桌上|在口袋里|在书架上)/.test(s), weight: 1 },
+  ], ([notHeld, noFake]) => !!(notHeld && noFake))
+}
+
+function evalT129(r: string): VerifResult {
+  // After T127 拿起 + T128 放下, latest state should be "放下".
+  return buildResult(129, '验证点#S3 金表最新状态=放下 (event-time 最新)', r, [
+    { desc: '最新状态=放下',              test: /放下|已放下|不在手里|不在您手上/, weight: 4 },
+    { desc: '未误答"拿着"',               test: (s) => !/(还拿着|在您手里|仍握着)/.test(s), weight: 2 },
+    { desc: '如提及两次动作保持一致',     test: (s) => !/(先.*放下.*后.*拿起|现在.*拿着)/.test(s), weight: 1 },
+  ], ([put]) => !!put)
+}
+
+function evalT131(r: string): VerifResult {
+  return buildResult(131, '验证点#S4 窗户 status=open (打开后)', r, [
+    { desc: '回答"开着"',                 test: /开着|是开的|打开了|开的|敞开/, weight: 4 },
+    { desc: '未答"关着"',                 test: (s) => !/(关着|关上了|没开|闭着)/.test(s), weight: 2 },
+  ], ([open, notClosed]) => !!(open && notClosed))
+}
+
+function evalT133(r: string): VerifResult {
+  return buildResult(133, '验证点#S5 窗户 status=closed (关上后覆盖)', r, [
+    { desc: '回答"关着"',                 test: /关着|关上了|是关的|已关|闭着/, weight: 4 },
+    { desc: '未答"开着"',                 test: (s) => !/(还开着|仍是开的|开着呢)/.test(s), weight: 2 },
+  ], ([closed, notOpen]) => !!(closed && notOpen))
+}
+
+function evalT135(r: string): VerifResult {
+  // T134 is hypothesis ("也许我应该锁上门"). Must NOT have created status:门=locked.
+  return buildResult(135, '验证点#S6 门状态未被假设语污染', r, [
+    { desc: '未声称门已锁/已解锁',        test: (s) => !/(门.*锁上了|门.*解锁了|门.*已锁|门.*是锁着的|门现在锁着)/.test(s), weight: 3 },
+    { desc: '表达不知或未确认',           test: /不清楚|不知道|没有锁过|您没说.*锁|没动过门|未提及|今天没.*门/, weight: 2 },
+  ], ([noPhantom, honest]) => !!(noPhantom && honest))
+}
+
+// ── Evaluators — Phase T: Speaker Normalization Gates (第 136-145) 🚪 ────────
+
+function evalT138(r: string): VerifResult {
+  // T136 question (没打翻), T137 correction+confusion about closing window.
+  // T132 still holds: window is closed.
+  return buildResult(138, '验证点#T1 窗户仍 closed (confusion/question 不撤销)', r, [
+    { desc: '回答"关着"',                 test: /关着|关上了|是关的|已关|闭着/, weight: 3 },
+    { desc: '未让 T136/T137 污染状态',    test: (s) => !/(其实.*开着|窗户.*不确定|可能开着|也许开着)/.test(s), weight: 2 },
+  ], ([closed]) => !!closed)
+}
+
+function evalT142(r: string): VerifResult {
+  // Silver watch has NEVER moved. Despite T141 confusion ("搞不清楚我有没有拿起过银怀表"),
+  // scene fact holder:银怀表=null AND location:银怀表=茶室 must stand.
+  return buildResult(142, '验证点#T2 银表未动 + 仍在茶室', r, [
+    { desc: '银怀表仍在茶室',             test: /银.*茶室|茶室.*银|还在茶室|仍在茶室/, weight: 3 },
+    { desc: '未确认被拿起过',             test: (s) => !/(您.*拿起过.*银|拿起过银怀表|从茶室拿走|您.*取走.*银)/.test(s), weight: 2 },
+    { desc: '不编造被别人动过',           test: (s) => !/(Alice.*拿走|管家.*拿走|梅姨.*动过.*银)/.test(s), weight: 1 },
+  ], ([inTearoom, notTaken]) => !!(inTearoom && notTaken))
+}
+
+function evalT145(r: string): VerifResult {
+  // T139 hypothesis ("可能我应该把金怀表交给你") must NOT change gold watch holder.
+  // After T128 put, gold watch holder=null. That's still current.
+  return buildResult(145, '验证点#T3 金表未被 T139 假设污染', r, [
+    { desc: '最新状态=放下',              test: /放下|不在手里|不在您手上|已放下/, weight: 3 },
+    { desc: '未被"交给你"假设带偏',       test: (s) => !/(我拿着金表|金.*在我这|交给我了|已交给)/.test(s), weight: 3 },
+  ], ([put, notGiven]) => !!(put && notGiven))
+}
+
+// ── Evaluators — Phase U: Integrated Cognition Marathon (第 146-150) 🏁 ─────
+
+function evalT146(r: string): VerifResult {
+  // Timeline must include: gold watch take+put twice, window open+close.
+  // It must NOT include hypothetical actions (also lock door, give gold to maid, etc.).
+  return buildResult(146, '验证点#U1 动作时间线(含金表 take/put×2 + 窗户 open/close)', r, [
+    { desc: '提到金表拿起或放下',         test: /金.*拿起|拿起金|金.*放下|放下金|拿起过金/, weight: 2 },
+    { desc: '提到窗户开/关',              test: /打开窗|开.*窗|关上窗|关.*窗/, weight: 2 },
+    { desc: '体现了先后顺序',             test: /先|然后|再|之后|后来|随后/, weight: 1 },
+    { desc: '未把"锁上门"纳入真实动作',   test: (s) => !/(您锁.*门|锁上了门|把门锁上)/.test(s), weight: 2 },
+    { desc: '未把"交给你"纳入真实动作',   test: (s) => !/(您.*交给.*金表|交给我金|金表.*给了我|给我了)/.test(s), weight: 1 },
+  ], ([goldAction, windowAction]) => !!(goldAction && windowAction))
+}
+
+function evalT147(r: string): VerifResult {
+  return buildResult(147, '验证点#U2 物品状态变化审计(金表变;银表未变)', r, [
+    { desc: '金怀表发生过变化',           test: /金.*(变|拿|放|手上.*不在|状态)/, weight: 2 },
+    { desc: '窗户发生过变化',             test: /窗|开.*关|关.*开/, weight: 2 },
+    { desc: '银怀表未发生过变化',         test: /银怀表.*(没|未|一直|始终).*动|银.*没.*动|银怀表.*(仍|依然|还).*茶室/, weight: 3 },
+    { desc: '未声称银表被动过',           test: (s) => !/(银.*拿起过|您.*动.*银怀表|银表.*交出)/.test(s), weight: 1 },
+  ], ([goldChanged, windowChanged, silverUnchanged]) =>
+    !!((goldChanged || windowChanged) && silverUnchanged),
+  )
+}
+
+function evalT148(r: string): VerifResult {
+  return buildResult(148, '验证点#U3 双表终态(银→茶室未动;金→放下状态)', r, [
+    { desc: '银怀表→在茶室未动',          test: /银.*茶室|茶室.*银|银怀表.*未动|银.*还在茶室/, weight: 3 },
+    { desc: '金怀表→最新已放下',          test: /金.*放下|放下.*金|金怀表.*不在手里|金.*已放/, weight: 3 },
+    { desc: '两表区分无混淆',             test: (s) => /银/.test(s) && /金/.test(s), weight: 1 },
+    { desc: '未声称金表仍在手',           test: (s) => !/(金.*还在手里|金.*您拿着|金怀表您握着)/.test(s), weight: 2 },
+  ], ([silver, goldPut, both]) => !!(silver && goldPut && both))
+}
+
+function evalT149(r: string): VerifResult {
+  return buildResult(149, '验证点#U4 最终约束+双表规矩合集', r, [
+    { desc: '银表→对管家保密',            test: /银.*管家.*(不|保密|不知道)|不.*让管家知道.*银|管家.*不.*银/, weight: 3 },
+    { desc: '金表→不借外人',              test: /金.*不借|不借.*金|金.*不外借|金怀表.*规矩|祖父|不外借/, weight: 3 },
+    { desc: '梅姨/信息链风险',            test: /梅姨.*(管家|不说|不告诉|嘴快|消息)|梅姨.*通/, weight: 2 },
+    { desc: '完整覆盖核心三项',           test: (s) =>
+      /银/.test(s) && /金/.test(s) && /(管家|保密|不借)/.test(s),
+      weight: 2,
+    },
+  ], ([silverSecret, goldRule]) => !!(silverSecret && goldRule))
+}
+
 // ── VERIFIERS map ─────────────────────────────────────────────────────────────
 
 const VERIFIERS: Record<number, (r: string) => VerifResult> = {
@@ -556,6 +768,22 @@ const VERIFIERS: Record<number, (r: string) => VerifResult> = {
   116: evalT116,
   118: evalT118,
   120: evalT120,
+  // ── Phase S: Action capability (turns 121-135) ──
+  123: evalT123,
+  125: evalT125,
+  129: evalT129,
+  131: evalT131,
+  133: evalT133,
+  135: evalT135,
+  // ── Phase T: Speaker normalization gates (turns 136-145) ──
+  138: evalT138,
+  142: evalT142,
+  145: evalT145,
+  // ── Phase U: Integrated marathon (turns 146-150) ──
+  146: evalT146,
+  147: evalT147,
+  148: evalT148,
+  149: evalT149,
 }
 
 // ── Browser helpers ───────────────────────────────────────────────────────────
@@ -659,8 +887,8 @@ async function sendTurn(
 
 // ── Main test ─────────────────────────────────────────────────────────────────
 
-test('RP Live Test — 120 turns with rp_agent:mei (庄园女仆)', async ({ page }) => {
-  // Honour RP_MAX_TURNS env var; default 10 for quick smoke, 120 for full test
+test('RP Live Test — 150 turns with rp_agent:mei (庄园女仆)', async ({ page }) => {
+  // Honour RP_MAX_TURNS env var; default 10 for quick smoke, 150 for full test
   const maxTurns = parseInt(process.env['RP_MAX_TURNS'] ?? '10', 10)
   const activeTurns = TURNS.slice(0, maxTurns)
 
@@ -739,7 +967,7 @@ test('RP Live Test — 120 turns with rp_agent:mei (庄园女仆)', async ({ pag
 
   // ── Print report ────────────────────────────────────────────────────────
   console.log('\n' + '═'.repeat(72))
-  console.log('RP LIVE TEST REPORT — 120 TURNS')
+  console.log(`RP LIVE TEST REPORT — ${maxTurns} TURNS (of 150 planned)`)
   console.log('═'.repeat(72))
   console.log(`Grade        : ${grade}`)
   console.log(`Verif pass   : ${passCount}/${total}`)

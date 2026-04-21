@@ -1,7 +1,9 @@
 import { apiStream } from '../api/client'
 
 const DATA_PREFIX = 'data: '
-const DEFAULT_STREAM_IDLE_TIMEOUT_MS = 45_000
+// Talker retry can hold the SSE silent for up to ~93s (3 attempts × 30s + 1s/2s backoffs).
+// 150s covers that with margin; true gateway hangs still trip in reasonable time.
+const DEFAULT_STREAM_IDLE_TIMEOUT_MS = 150_000
 
 type StreamTurnOptions = {
   idleTimeoutMs?: number
