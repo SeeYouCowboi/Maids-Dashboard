@@ -42,8 +42,12 @@ import * as path from 'node:path'
 
 const TOKEN = process.env.E2E_TOKEN ?? 'maidsclaw'
 
-// 100-minute global timeout for the full 150-turn run
-test.setTimeout(100 * 60 * 1000)
+// 120-minute global timeout for the full 150-turn run.
+// NOTE: calling test.setTimeout() at module scope does NOT reliably override
+// the config default on all Playwright versions — Playwright only guarantees
+// it when called inside a test body. We use describe.configure() here so the
+// timeout is set before tests enumerate.
+test.describe.configure({ timeout: 120 * 60 * 1000 })
 
 // ── Turn list ─────────────────────────────────────────────────────────────────
 
@@ -834,9 +838,55 @@ async function createRpMeiSession(page: Page): Promise<string> {
   return page.url()
 }
 
+interface TranscriptEntry {
+  record_index?: number
+  actor: string
+  record_type: string
+  request_id?: string
+  text?: string
+}
+
+async function fetchTranscript(sessionId: string): Promise<TranscriptEntry[]> {
+  const resp = await fetch(`http://localhost:18790/v1/sessions/${sessionId}/transcript`, {
+    headers: { Authorization: `Bearer ${TOKEN}` },
+  })
+  if (!resp.ok) return []
+  const data = (await resp.json()) as { entries?: TranscriptEntry[] }
+  return data.entries ?? []
+}
+
+async function pollFor<T>(
+  fn: () => Promise<T | undefined>,
+  opts: { timeoutMs: number; intervalMs: number; label: string },
+): Promise<T> {
+  const deadline = Date.now() + opts.timeoutMs
+  let lastErr: unknown
+  while (Date.now() < deadline) {
+    try {
+      const v = await fn()
+      if (v !== undefined) return v
+    } catch (e) {
+      lastErr = e
+    }
+    await new Promise((r) => setTimeout(r, opts.intervalMs))
+  }
+  throw new Error(`Timed out waiting for ${opts.label} after ${opts.timeoutMs}ms${lastErr ? ` (lastErr: ${String(lastErr).slice(0, 100)})` : ''}`)
+}
+
 /**
- * Send one message and wait for the streaming response to finish.
- * Returns the RP agent response text read directly from the gateway transcript API.
+ * Send one message and wait for the real backend turn to commit.
+ *
+ * Correctness is driven by the gateway transcript API, not the UI:
+ *   1. POST via UI (click send button).
+ *   2. Poll GET /transcript until a NEW user-message entry with our exact text appears.
+ *      This proves the gateway accepted the turn.
+ *   3. Read that entry's request_id, then poll until an rp_agent message with the
+ *      SAME request_id appears. This proves the agent response was committed.
+ *
+ * Previously the helper relied on `textarea.disabled → enabled` transitions, which
+ * the recent SSE auto-recovery (8f88869) made unreliable: Bun.serve's 10s idle kill
+ * would abort streams mid-response, auto-recovery would silently re-enable the
+ * textarea, and the helper would read the *previous* turn's agent message.
  */
 async function sendTurn(
   page: Page,
@@ -848,41 +898,58 @@ async function sendTurn(
   const textarea = page.locator('textarea').first()
   const sendBtn = page.locator('button[aria-label="Send message"]').first()
 
-  // Wait for textarea to be enabled (not streaming)
-  await expect(textarea).not.toBeDisabled({ timeout: 30_000 })
+  await expect(textarea).not.toBeDisabled({ timeout: 60_000 })
 
-  // Click the textarea to focus, then fill it
+  // Snapshot current highest record_index so we can detect *new* entries.
+  const pre = await fetchTranscript(sessionId)
+  const preMaxIdx = pre.reduce((m, e) => Math.max(m, e.record_index ?? -1), -1)
+
   await textarea.click()
   await textarea.fill(message)
-
-  // Verify the value was accepted by React's controlled state
   await expect(textarea).toHaveValue(message, { timeout: 5_000 })
-
-  // Click the Send button (more reliable than pressing Enter for React)
   await expect(sendBtn).toBeEnabled({ timeout: 5_000 })
   await sendBtn.click()
 
-  // Confirm streaming started — textarea must become disabled within 10s
-  await expect(textarea).toBeDisabled({ timeout: 10_000 })
+  // 1) Wait for the gateway to record our user message with the exact text we sent.
+  //    Gateway serializes turns, so when the previous stream is still settling
+  //    this can legitimately take up to ~90s before our new entry appears.
+  const userEntry = await pollFor<TranscriptEntry>(
+    async () => {
+      const entries = await fetchTranscript(sessionId)
+      return entries.find(
+        (e) =>
+          (e.record_index ?? -1) > preMaxIdx &&
+          e.actor === 'user' &&
+          e.record_type === 'message' &&
+          e.text === message,
+      )
+    },
+    { timeoutMs: 180_000, intervalMs: 500, label: `user message commit (T${turnN})` },
+  )
 
-  // Wait for streaming to finish — up to 3 minutes per turn
-  await expect(textarea).not.toBeDisabled({ timeout: 180_000 })
+  const requestId = userEntry.request_id
+  if (!requestId) throw new Error(`T${turnN}: user entry has no request_id`)
 
-  // Capture screenshot
+  // 2) Wait for the agent response committed against THAT request_id.
+  const agentEntry = await pollFor<TranscriptEntry>(
+    async () => {
+      const entries = await fetchTranscript(sessionId)
+      return entries.find(
+        (e) =>
+          e.actor !== 'user' &&
+          e.record_type === 'message' &&
+          e.request_id === requestId &&
+          (e.text?.length ?? 0) > 0,
+      )
+    },
+    { timeoutMs: 240_000, intervalMs: 1_000, label: `agent reply for req ${requestId.slice(0, 8)} (T${turnN})` },
+  )
+
   await page.screenshot({
     path: path.join(screenshotDir, `turn-${String(turnN).padStart(3, '0')}.png`),
   })
 
-  // Read the RP agent response directly from the gateway transcript API.
-  const resp = await fetch(`http://localhost:18790/v1/sessions/${sessionId}/transcript`, {
-    headers: { Authorization: `Bearer ${TOKEN}` },
-  })
-  if (!resp.ok) return ''
-  const data = (await resp.json()) as { entries?: Array<{ actor: string; record_type: string; text?: string }> }
-  const entries = data.entries ?? []
-  // Last assistant message (actor is not 'user')
-  const lastAgentMessage = [...entries].reverse().find((e) => e.actor !== 'user' && e.record_type === 'message')
-  return lastAgentMessage?.text ?? ''
+  return agentEntry.text ?? ''
 }
 
 // ── Main test ─────────────────────────────────────────────────────────────────
@@ -992,6 +1059,22 @@ test('RP Live Test — 150 turns with rp_agent:mei (庄园女仆)', async ({ pag
   }
   console.log('═'.repeat(72))
 
+  // ── Backend-commit coverage check ───────────────────────────────────────
+  // Count how many of our sent turns actually have a distinct request_id in the
+  // transcript. Without this, UI-level race conditions (past incident: SSE idle
+  // abort masked by auto-recovery) can let the test silently report success while
+  // the backend only processes a fraction of the turns.
+  const finalTranscript = await fetchTranscript(sessionId)
+  const userReqIds = new Set(
+    finalTranscript
+      .filter((e) => e.actor === 'user' && e.record_type === 'message' && e.request_id)
+      .map((e) => e.request_id!),
+  )
+  const committedTurns = userReqIds.size
+  console.log(
+    `Backend commit coverage: ${committedTurns}/${maxTurns} user turns recorded in transcript`,
+  )
+
   // ── Write JSON report ───────────────────────────────────────────────────
   const reportPath = path.join('e2e', 'rp-live-report.json')
   const report = {
@@ -1003,6 +1086,8 @@ test('RP Live Test — 150 turns with rp_agent:mei (庄园女仆)', async ({ pag
     avgScore: Number(avgScore.toFixed(2)),
     confusionRCA: rcaCounts,
     turnErrors: Object.keys(errors).length,
+    committedTurns,
+    sentTurns: maxTurns,
     verifications,
     errors,
     responses,
@@ -1010,7 +1095,17 @@ test('RP Live Test — 150 turns with rp_agent:mei (庄园女仆)', async ({ pag
   fs.writeFileSync(reportPath, JSON.stringify(report, null, 2), 'utf-8')
   console.log(`\nReport → ${reportPath}`)
 
-  // ── Assert minimum bar ──────────────────────────────────────────────────
+  // ── Assert backend actually processed every sent turn ───────────────────
+  // Hard floor: every turn we sent must have reached the gateway and produced
+  // a distinct transcript entry. Anything less means the stream lifecycle is
+  // lying about completion (see sendTurn docstring for the 8f88869 incident).
+  expect(
+    committedTurns,
+    `Only ${committedTurns}/${maxTurns} sent turns were committed to the backend. ` +
+      `Stream lifecycle or gateway is dropping turns silently.`,
+  ).toBe(maxTurns)
+
+  // ── Assert minimum quality bar ──────────────────────────────────────────
   // Require ≥50% verifications pass AND no more than 4 confusion-compliance events
   expect(
     passCount,
