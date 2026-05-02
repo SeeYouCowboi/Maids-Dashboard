@@ -413,7 +413,12 @@ function AgentCard({ agent, index }: { agent: AgentItem; index: number }) {
         <div className="grid grid-cols-2 gap-2 text-xs">
           <KV label="Role" value={agent.role} />
           <KV label="Output Mode" value={agent.output_mode} />
-          <KV label="Model" value={agent.model_id} />
+          <KV
+            label="Talker/Thinker"
+            value={agent.talker_thinker_enabled ? 'Enabled' : 'Disabled'}
+          />
+          {agent.talker_model_id != null && <KV label="Talker Model" value={agent.talker_model_id} />}
+          <KV label="Thinker Model" value={agent.thinker_model_id} />
           <KV label="User Facing" value={agent.user_facing ? 'Yes' : 'No'} />
           <KV label="Lorebook" value={agent.lorebook_enabled ? 'Enabled' : 'Disabled'} />
           <KV
